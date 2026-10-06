@@ -2,13 +2,22 @@
 echo "\x1b[33;1m === Debian === \x1b[0m\n";
 
 // Debian Repository
+// The package version defaults to the application version. A downstream build
+// passes its own (TACHYON_DEB_VERSION, e.g. 4.3.1+zaphods.2), otherwise two
+// builds of the same application version look identical to dpkg and apt
+// installs neither over the other. The application itself keeps the plain
+// version in its paths and VERSION file.
+$sDebVersion = \getenv('TACHYON_DEB_VERSION') ?: $package->version;
+if (!\preg_match('/^[0-9][A-Za-z0-9.+~]*$/D', $sDebVersion)) {
+	exit("Invalid TACHYON_DEB_VERSION '{$sDebVersion}'\n");
+}
 define('DEB_SOURCE_DIR', __DIR__ . '/deb');
-define('DEB_DEST_DIR', DEB_SOURCE_DIR . "/tachyon_{$package->version}-1_all");
+define('DEB_DEST_DIR', DEB_SOURCE_DIR . "/tachyon_{$sDebVersion}-1_all");
 is_dir(DEB_DEST_DIR) && passthru('rm -dfr '.escapeshellarg(DEB_DEST_DIR));
 
 $dir = DEB_DEST_DIR . '/DEBIAN';
 $data = file_get_contents(DEB_SOURCE_DIR . '/DEBIAN/control');
-$data = str_replace('0.0.0', $package->version, $data);
+$data = str_replace('0.0.0', $sDebVersion, $data);
 mkdir($dir, 0755, true);
 file_put_contents("{$dir}/control", $data);
 copy(DEB_SOURCE_DIR . '/DEBIAN/postinst', $dir . '/postinst');
