@@ -58,6 +58,16 @@ jobs:
           fi
           echo "Version: $PKG_VERSION"
           echo "version=$PKG_VERSION" >> $GITHUB_OUTPUT
+          # A downstream build is tagged vX.Y.Z-zaphods.N. Its package must not
+          # carry the bare upstream version, or apt sees the same version as
+          # upstream's (or the previous downstream build) and installs nothing.
+          # X.Y.Z+zaphods.N sorts above X.Y.Z and below the next upstream release.
+          case "$GITHUB_REF_NAME" in
+            *-zaphods.*) DEB_VERSION="$PKG_VERSION+${GITHUB_REF_NAME#*-}" ;;
+            *) DEB_VERSION="$PKG_VERSION" ;;
+          esac
+          echo "Debian package version: $DEB_VERSION"
+          echo "deb_version=$DEB_VERSION" >> $GITHUB_OUTPUT
 
       # Optional on purpose. Without the secret the release still builds, just
       # unsigned, rather than failing on a fork or before the key is configured.
@@ -97,6 +107,7 @@ jobs:
       - name: Build release (JS/CSS + PHP archive + plugins)
         env:
           TACHYON_SIGNING_KEY: ${{ steps.gpg.outputs.fpr }}
+          TACHYON_DEB_VERSION: ${{ steps.version.outputs.deb_version }}
         run: PATH="$PATH:node_modules/.bin" php cli/release.php --debian --nextcloud --owncloud --cpanel ${{ steps.gpg.outputs.sign }}
 
       # gpg failing leaves the build green and the artifacts unsigned, which is
@@ -126,9 +137,11 @@ jobs:
           D="build/dist/releases/webmail/$V"
           cp "$D/tachyon-$V.tar.gz" "$D/tachyon-latest.tar.gz"
           cp "$D/tachyon-$V.zip"    "$D/tachyon-latest.zip"
-          if [ -f "$D/tachyon_$V-1_all.deb" ]; then
-            cp "$D/tachyon_$V-1_all.deb" "$D/tachyon_latest_all.deb"
-          fi
+          # The package version can differ from $V (downstream builds), so
+          # find the one package built rather than spelling its name
+          for f in "$D"/tachyon_*_all.deb; do
+            [ -f "$f" ] && [ "$f" != "$D/tachyon_latest_all.deb" ] && cp "$f" "$D/tachyon_latest_all.deb"
+          done
           ls -1 "$D"
 
       # Attached to the release so translators can see where their language stands
@@ -145,6 +158,9 @@ jobs:
       # onto itself and stops on a conflict. That matters, because the step after
       # this one can fail on a transient API error and a re-run is the remedy.
       - name: Commit updated packages.json
+        # Upstream only: on a fork this would push a commit onto master that
+        # then conflicts with every merge from upstream
+        if: github.repository == 'kimusan/Tachyon'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -220,6 +236,8 @@ jobs:
     # needs: build already skips this if the build failed. A pre-release goes to
     # the nightly channel, a full release to stable, see the nightly input below.
     needs: build
+    # The App Store entry and its secrets belong to upstream
+    if: github.repository == 'kimusan/Tachyon'
 
     steps:
       - name: Publish to Nextcloud App Store

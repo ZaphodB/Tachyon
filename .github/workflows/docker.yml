@@ -12,6 +12,8 @@ permissions:
 
 jobs:
   build:
+    # Upstream only: a fork has no use for a public image under its own name
+    if: github.repository == 'kimusan/Tachyon'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
