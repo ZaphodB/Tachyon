@@ -45,6 +45,18 @@ $raw = base64_decode($box);
 $raw[30] = chr(ord($raw[30]) ^ 1);
 check(null === TwoFactorRecord::unseal(base64_encode($raw), $key), 'a tampered box is accepted');
 
+// Sodium is not one of the extensions Tachyon requires, so the openssl scheme
+// has to hold up on its own. Run this file under
+//   php -d disable_functions=sodium_crypto_secretbox,sodium_crypto_secretbox_open
+// to exercise it; here we check that whichever scheme sealed a box, it is
+// marked and still opens.
+$marker = base64_decode($box)[0];
+check("\x01" === $marker || "\x02" === $marker, 'the box carries no scheme marker');
+check("\x01" === $marker ? is_callable('sodium_crypto_secretbox') : !is_callable('sodium_crypto_secretbox'),
+	'the box was sealed with a scheme this host did not have');
+check(null === TwoFactorRecord::unseal(base64_encode("\x09".substr(base64_decode($box), 1)), $key),
+	'a box with an unknown scheme marker is opened');
+
 // Backup codes.
 $codes = TwoFactorRecord::newBackupCodes();
 check(8 === count($codes), 'not eight backup codes');

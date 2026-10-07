@@ -36,17 +36,53 @@ final class TwoFactorRecord
 		return \hash_hkdf('sha256', $sSalt, 32, 'tachyon/two-factor-auth/v1');
 	}
 
+	/**
+	 * Sodium is not one of the extensions Tachyon requires, and Crypt falls back
+	 * to openssl without it, so this cannot call secretbox unconditionally: a
+	 * host without sodium would fatal on the first read of any enrolled user's
+	 * record, since normalise() seals as it reads. A leading byte says which
+	 * scheme sealed a box so both stay readable. Both are authenticated, so a
+	 * tampered box fails to open either way.
+	 */
+	private const SEAL_SODIUM = "\x01";
+	private const SEAL_OPENSSL = "\x02";
+	private const SEAL_CIPHER = 'aes-256-gcm';
+	private const SEAL_TAG_BYTES = 16;
+
 	public static function seal(string $sSecret, string $sKey) : string
 	{
-		$sNonce = \random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-		return \base64_encode($sNonce . \sodium_crypto_secretbox($sSecret, $sNonce, $sKey));
+		if (\is_callable('sodium_crypto_secretbox')) {
+			$sNonce = \random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+			return \base64_encode(self::SEAL_SODIUM . $sNonce
+				. \sodium_crypto_secretbox($sSecret, $sNonce, $sKey));
+		}
+		$sIv = \random_bytes((int) \openssl_cipher_iv_length(self::SEAL_CIPHER));
+		$sTag = '';
+		$sCipher = \openssl_encrypt($sSecret, self::SEAL_CIPHER, $sKey, OPENSSL_RAW_DATA, $sIv, $sTag);
+		if (false === $sCipher) {
+			throw new \RuntimeException('two-factor-auth: cannot seal the secret');
+		}
+		return \base64_encode(self::SEAL_OPENSSL . $sIv . $sTag . $sCipher);
 	}
 
 	/** The secret, or null when the box was tampered with or sealed under another key. */
 	public static function unseal(string $sBox, string $sKey) : ?string
 	{
 		$sRaw = (string) \base64_decode($sBox, true);
-		if (\strlen($sRaw) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
+		$sMarker = \substr($sRaw, 0, 1);
+		$sRaw = \substr($sRaw, 1);
+		if (self::SEAL_OPENSSL === $sMarker) {
+			$iIv = (int) \openssl_cipher_iv_length(self::SEAL_CIPHER);
+			if (\strlen($sRaw) <= $iIv + self::SEAL_TAG_BYTES) {
+				return null;
+			}
+			$m = \openssl_decrypt(\substr($sRaw, $iIv + self::SEAL_TAG_BYTES), self::SEAL_CIPHER, $sKey,
+				OPENSSL_RAW_DATA, \substr($sRaw, 0, $iIv), \substr($sRaw, $iIv, self::SEAL_TAG_BYTES));
+			return false === $m ? null : $m;
+		}
+		if (self::SEAL_SODIUM !== $sMarker
+		 || !\is_callable('sodium_crypto_secretbox_open')
+		 || \strlen($sRaw) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
 			return null;
 		}
 		$m = \sodium_crypto_secretbox_open(\substr($sRaw, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES),
