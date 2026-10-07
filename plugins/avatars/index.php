@@ -10,7 +10,7 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 		NAME     = 'Avatars',
 		AUTHOR   = 'Tachyon',
 		URL      = 'https://github.com/kimusan/Tachyon',
-		VERSION  = '1.26',
+		VERSION  = '1.27',
 		RELEASE  = '2026-09-08',
 		REQUIRED = '2.33.0',
 		CATEGORY = 'Contacts',
@@ -95,6 +95,11 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 	 */
 	public function DoAvatar() : array
 	{
+		// Same reachability as ServiceAvatar below: a JSON token is minted for
+		// guests too, so this needs the account check of its own.
+		if (!\Tachyon\Api::Actions()->getAccountFromToken(false)) {
+			return $this->jsonResponse(__FUNCTION__, false);
+		}
 		$bBimi = !empty($this->jsonParam('bimi'));
 		$sBimiSelector = $this->jsonParam('bimiSelector') ?: '';
 		$sEmail = $this->jsonParam('email');
@@ -116,9 +121,21 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 	public function ServiceAvatar(string $sServiceName, string $sBimi, string $sEncodedEmail)
 	{
 		$maxAge = 86400;
+		// Anyone who can reach the login page could call this. With BIMI on it made
+		// the server fetch a URL out of a DNS record for a domain of the caller's
+		// choosing, and wrote whatever came back into the shared avatar cache under
+		// any address. Reported privately by Fathi Ben Nasr (GHSA-2r3w-3qmp-ppf2).
+		if (!\Tachyon\Api::Actions()->getAccountFromToken(false)) {
+			\MailSo\Base\Http::StatusHeader(401, 'Unauthorized');
+			exit;
+		}
 		$sEmail = \MailSo\Base\Utils::UrlSafeBase64Decode($sEncodedEmail);
 		$aBimi = \explode('-', $sBimi, 2);
 		$sBimiSelector = isset($aBimi[1]) ? $aBimi[1] : 'default';
+		// The selector reaches a DNS query and a cache key, so hold it to one label.
+		if (!\preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/D', $sBimiSelector)) {
+			$sBimiSelector = 'default';
+		}
 //		$sEmail && \MailSo\Base\Http::setETag("{$sBimiSelector}-{$sEncodedEmail}");
 		if ($sEmail && ($aResult = $this->getAvatar($sEmail, !empty($aBimi[0]), $sBimiSelector))) {
 			\header("Cache-Control: max-age={$maxAge}, private");
@@ -496,7 +513,18 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 
 	private static function getUrl(string $sUrl) : ?array
 	{
+		// With BIMI on, this URL comes from a DNS record belonging to the domain in
+		// the address being looked up, so the caller chooses it. Everything fetched
+		// here is https by construction, and DNS::BIMI does not check what it pulls
+		// out of the record, so refuse anything else rather than trust it.
+		if (!\str_starts_with(\strtolower($sUrl), 'https://')) {
+			\Tachyon\Util\Log::notice('Avatar', "refused non-https {$sUrl}");
+			return null;
+		}
 		$oHTTP = \Tachyon\Util\HTTP\Request::factory(/*'socket' or 'curl'*/);
+		// Request defaults this off and only the image proxy switched it on, so the
+		// gate added in 4.4.0 did not cover this path at all.
+		$oHTTP->block_private_ips = true;
 		$oHTTP->proxy = \Tachyon\Api::Config()->Get('labs', 'curl_proxy', '');
 		$oHTTP->proxy_auth = \Tachyon\Api::Config()->Get('labs', 'curl_proxy_auth', '');
 		$oHTTP->max_response_kb = 0;
