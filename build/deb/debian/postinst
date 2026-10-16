@@ -1,3 +1,24 @@
 #!/bin/sh
 chown -R www-data:www-data /var/lib/tachyon
 chown -R root:root /usr/share/tachyon/
+
+# Replaces: tachyon (<< 4.4.3~) lets this package take over the files the old
+# "tachyon" package owned, so the install no longer stops on a conflict (#154).
+# It does not remove that package though, and what stays behind is a whole older
+# copy of the application under the same directory, its own index.php, include.php
+# and setup.php included. Several releases up to 4.4.3 closed real security holes,
+# so leaving it there is not a tidiness question.
+if dpkg-query -W -f='${Status}' tachyon 2>/dev/null | grep -q 'install ok installed'; then
+	cat <<'WARN' >&2
+
+The old "tachyon" package is still installed. It holds an older copy of
+Tachyon under /usr/share/tachyon, which may still be reachable by the web
+server and is missing the security fixes in 4.4.0 through 4.4.3. Remove it:
+
+    apt remove tachyon
+
+(Debian's unrelated "tachyon" ray tracer uses /usr/bin/tachyon. If that is the
+one you have, you can ignore this.)
+
+WARN
+fi

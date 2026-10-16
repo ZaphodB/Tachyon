@@ -192,12 +192,24 @@ MessagelistUserStore.notifyNewMessages = (folder, newMessages) => {
 	}
 }
 
+/**
+ * Set when next or previous crosses a page boundary with a message open. The
+ * page change writes a hash with no message in it, and the route must not read
+ * that as "close the message", because the selector is about to open the next
+ * one as soon as the list lands. Clearing it there dropped the reader onto the
+ * list for an instant, which is invisible beside a preview pane and plain to
+ * see on mobile, where the list and the message are separate views (#157).
+ *
+ * A plain property: nothing binds to it, and it is consumed by the next route.
+ */
+MessagelistUserStore.selectAfterReload = false;
+
 MessagelistUserStore.canSelect = () =>
 	!disableAutoSelect()
 	&& SettingsUserStore.usePreviewPane();
 //	&& !SettingsUserStore.showNextMessage();
 
-let prevFolderName, prevSearch, prevOffset;
+let prevFolderName, prevSearch, prevOffset, prevThreadUid;
 
 /**
  * @param {boolean=} bDropPagePosition = false
@@ -232,10 +244,18 @@ MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCach
 	// Keeping them hid the spinner, which only shows on an empty list, so a slow
 	// search or page change looked like nothing was happening at all.
 	// iOffset covers paging, and is already reset to 0 by bDropPagePosition above.
-	if (prevFolderName != folderName || prevSearch != search || prevOffset != iOffset) {
+	// The thread uid needs saying separately: opening a conversation keeps the
+	// same folder and search, and lands on page 1, so from page 1 nothing here
+	// moved. The whole folder then sat on screen, with no spinner, until the
+	// thread arrived to replace it, which looks exactly like the thread never
+	// loading at all (#156).
+	const threadUid = MessagelistUserStore.threadUid();
+	if (prevFolderName != folderName || prevSearch != search || prevOffset != iOffset
+	 || prevThreadUid != threadUid) {
 		prevFolderName = folderName;
 		prevSearch = search;
 		prevOffset = iOffset;
+		prevThreadUid = threadUid;
 		MessagelistUserStore([]);
 	}
 

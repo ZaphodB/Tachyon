@@ -354,6 +354,9 @@ export class MailMessageList extends AbstractViewRight {
 				if (page > 0 && page <= MessagelistUserStore.pageCount()) {
 					if (SettingsUserStore.usePreviewPane() || MessageUserStore.message()) {
 						this.selector.iSelectNextHelper = up;
+						// A message is open and another is about to replace it, so
+						// the route must leave this one alone until it does.
+						MessagelistUserStore.selectAfterReload = true;
 					} else {
 						this.selector.iFocusedNextHelper = up;
 					}

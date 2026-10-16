@@ -1,3 +1,31 @@
+## 4.4.6 - 2026-10-16
+
+Five releases in two days, and three of them to clean up after one change of mine. Sorry. Writing the open message into the address bar, added in 4.4.3 so that Back works and a message can be linked, reset a different piece of the mailbox on every click, and each one surfaced as its own bug. Everything the address bar carries is now read and applied in one place, and the rest of the links that write it have been gone through rather than waited on.
+
+If you are on 4.4.3, 4.4.4 or 4.4.5, take this one.
+
+### Fixed
+- **Opening a message from page 2 or later jumped back to page 1**, after which the previous and next arrows walked a list that no longer held the open message and appeared to do nothing. A message link has nowhere to record the page, so the route reported page one for every one of them and the list was reloaded at the top. Reported by @lvarnava (#157)
+- **Opening a message from a search threw the search away** and reloaded the whole folder behind it. The link dropped the search, which the route has always been able to carry after the uid. Found while fixing #157, not reported
+- **Clicking the conversation count showed the whole list, and Back to list stayed in the thread.** The test that stops every message click refetching the list compared the folder, page and search, and the thread uid is none of those: it travels inside the folder part, so entering or leaving a thread changed nothing it looked at and the reload was skipped in both directions. Reported by @floppybl (#156)
+- Reloading the browser while reading a message inside a thread came back with the whole folder behind it. The thread uid was applied only when the address bar held no message. Found by going through the remaining links rather than from a report
+
+---
+
+## 4.4.5 - 2026-10-16
+
+Take this one if you run 4.4.3 or 4.4.4 and any of your folders has a space, an accent or a nested path: opening a message showed nothing at all.
+
+### Fixed
+- **A message opened to an empty body**, in any folder whose name is not plain ASCII. The fix for #153 in 4.4.4 put the correct folder hash into the address bar, and then the route handler took that hash for a folder name: it compared it against the open message's full name, which never matches, built a replacement message naming a folder that does not exist, and the request for it was dropped without a word. So the body loaded and was immediately replaced by nothing. Both the comparison and the new message now use the folder's full name, which the route handler has already resolved. Diagnosed, down to the line, by @remmmi (#155)
+- **Installing the Debian package over an older `tachyon` package stopped on a file conflict.** The rename in 4.4.3 left `tachyon-webmail` owning the same paths without declaring that it replaces them, so `apt install ./tachyon-webmail_*.deb` aborted unless the old package was removed first, which broke unattended installs. A versioned `Replaces` hands the files over. There is deliberately no `Breaks`: Debian's unrelated `tachyon` ray tracer also satisfies `<< 4.4.3~`, and apt would have offered to remove it. Diagnosed and tested, including against python-apt, by @ZaphodB (#154)
+- Asking for a message in a folder that cannot be resolved now says so in the browser console, with `[debug] javascript = On`. It returned false in silence before, which is how the two bugs above stayed invisible while the message view simply sat empty
+
+### Changed
+- Installing the Debian package now warns, once, while an older `tachyon` package is still installed. `Replaces` hands over the shared files but does not remove that package, and what stays behind is a complete older copy of the application under `/usr/share/tachyon`, missing the security fixes from 4.4.0 through 4.4.3. Run `apt remove tachyon` to clear it
+
+---
+
 ## 4.4.4 - 2026-10-16
 
 Take this one if you run 4.4.3: clicking a message could fill the search box and open nothing, for anyone whose folders are not named in plain ASCII.

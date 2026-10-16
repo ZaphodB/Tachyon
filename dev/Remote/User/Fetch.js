@@ -24,6 +24,15 @@ class RemoteUserFetch extends AbstractFetchRemote {
 		sFolderFullName = pString(sFolderFullName);
 		iUid = pInt(iUid);
 
+		// Say so rather than returning false in silence. Twice now a caller has
+		// passed a folder hash where the full name belongs, and the message view
+		// just stayed empty with nothing anywhere to say why (#153, #155). A
+		// stale link to a folder that no longer exists lands here too, which is
+		// why this warns rather than throws.
+		if (0 < iUid && !getFolderFromCacheList(sFolderFullName)) {
+			console.warn(`Remote.message: no such folder ${JSON.stringify(sFolderFullName)}, not fetching uid ${iUid}`);
+		}
+
 		if (getFolderFromCacheList(sFolderFullName) && 0 < iUid) {
 			this.abort('Message').request('Message',
 				fCallback,

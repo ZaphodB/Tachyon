@@ -856,7 +856,25 @@ class MailClient
 			}
 		}
 
-		if ($message_list_limit && !$aUids) {
+		/**
+		 * Never for a request that names one thread. This branch says plainly that
+		 * it does not use THREAD, and it cannot: it answers with the most recent
+		 * slice of the folder. A thread request that landed here came back as the
+		 * unthreaded folder with the thread uid still echoed, so the client showed
+		 * "Back to message list" over the whole mailbox and the conversation never
+		 * opened (#156).
+		 *
+		 * It could not escape either: the cache lookup above, the one thing that
+		 * clears $message_list_limit, is itself skipped when a thread is named. So
+		 * in any folder holding more than message_list_limit messages, 10000 by
+		 * default, no thread could ever be opened. Nothing to do with the server:
+		 * a mailbox growing past the limit is enough.
+		 *
+		 * Showing one thread needs the thread map, which is cached, and a reader
+		 * can only click a thread whose count is on screen, so the map is warm by
+		 * then in practice.
+		 */
+		if ($message_list_limit && !$aUids && !$oParams->iThreadUid) {
 //		if ($message_list_limit || (!$this->oImapClient->hasCapability('SORT') && !$this->oImapClient->CapabilityValue('THREAD'))) {
 			// Don't use THREAD for speed
 			$oMessageCollection->Limited = true;

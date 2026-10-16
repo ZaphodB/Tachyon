@@ -129,6 +129,11 @@ export const
 
 		if (messageUid) {
 			result.push('m' + messageUid);
+			// The message route reads a trailing segment as the search, so carry it.
+			// Dropping it meant opening a message from a result list threw the
+			// search away and reloaded the whole folder behind it. There is no slot
+			// for the page in a message link, which onRoute() compensates for.
+			search && result.push(encodeURI(search));
 		} else {
 			page = pInt(page, 1);
 			if (1 < page) {
