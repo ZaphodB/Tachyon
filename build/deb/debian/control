@@ -10,6 +10,7 @@ Package: tachyon-webmail
 Architecture: all
 Multi-Arch: foreign
 Depends: nginx | apache2 | httpd, php-fpm | libapache2-mod-php, php-json, php-mbstring, php-xml
+Replaces: tachyon (<< 4.4.2~)
 Recommends: php-intl
 Suggests: php-cli, php-sqlite3 | php-mysql | php-pgsql, php-apcu, php-bz2, php-curl, php-gnupg, php-gd | php-gmagick | php-imagick, php-uuid, php-zip
 Description: fast, modern and secure web-based email client
