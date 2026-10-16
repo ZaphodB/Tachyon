@@ -16,11 +16,7 @@ export class AdminSettingsContacts extends AbstractViewSettings {
 		this.addSetting('contactsPdoDsn');
 		this.addSetting('contactsPdoUser');
 		this.addSetting('contactsPdoPassword');
-		this.addSetting('contactsPdoType', () => {
-			this.testContactsSuccess(false);
-			this.testContactsError(false);
-			this.testContactsErrorMessage('');
-		});
+		this.addSetting('contactsPdoType', () => this.resetContactsTest());
 
 		this.addSettings(['contactsEnable','contactsSync']);
 
@@ -33,6 +29,12 @@ export class AdminSettingsContacts extends AbstractViewSettings {
 		addObservablesTo(this, {
 			testing: false,
 			testContactsSuccess: false,
+			/**
+			 * The database answered, but contacts are switched off, so nothing
+			 * here is reachable by anyone. A plain green result was read as
+			 * "contacts work" and sent someone hunting elsewhere for a week (#145).
+			 */
+			testContactsDisabled: false,
 			testContactsError: false,
 			testContactsErrorMessage: ''
 		});
@@ -79,20 +81,28 @@ export class AdminSettingsContacts extends AbstractViewSettings {
 		});
 	}
 
-	testContactsCommand() {
+	resetContactsTest() {
 		this.testContactsSuccess(false);
+		this.testContactsDisabled(false);
 		this.testContactsError(false);
 		this.testContactsErrorMessage('');
+	}
+
+	testContactsCommand() {
+		this.resetContactsTest();
 		this.testing(true);
 
 		Remote.request('AdminContactsTest',
 			(iError, data) => {
-				this.testContactsSuccess(false);
-				this.testContactsError(false);
-				this.testContactsErrorMessage('');
+				this.resetContactsTest();
 
 				if (!iError && data.Result.Result) {
-					this.testContactsSuccess(true);
+					// The test only ever asked the database. Whether contacts are
+					// switched on is the other half of the answer, and without it
+					// a success here says less than it appears to.
+					this.contactsEnable()
+						? this.testContactsSuccess(true)
+						: this.testContactsDisabled(true);
 				} else {
 					this.testContactsError(true);
 					this.testContactsErrorMessage(data?.Result?.Message || '');

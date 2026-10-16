@@ -29,6 +29,7 @@ export const SettingsUserStore = new class {
 			simpleAttachmentsList: 0,
 			useCheckboxesInList: 1,
 			listGrouped: 0,
+			messageListPreviewLines: 0,
 			showNextMessage: 0,
 			allowDraftAutosave: 1,
 			undoSendDelay: 0,
@@ -170,6 +171,7 @@ export const SettingsUserStore = new class {
 
 		self.layout(pInt(SettingsGet('Layout')));
 		self.messagesPerPage(pInt(SettingsGet('MessagesPerPage')));
+		self.messageListPreviewLines(pInt(SettingsGet('messageListPreviewLines')));
 		self.messagesPerPageMax(pInt(SettingsGet('MessagesPerPageMax')) || 100);
 		self.checkMailInterval(pInt(SettingsGet('CheckMailInterval')));
 		self.messageReadDelay(pInt(SettingsGet('MessageReadDelay')));

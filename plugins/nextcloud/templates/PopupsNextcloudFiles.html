@@ -4,13 +4,20 @@
 	<h3 data-i18n="NEXTCLOUD/SELECT_FILES" data-bind="visible:files"></h3>
 </header>
 <div class="modal-body form-horizontal">
-<!--
-	TODO: built tree of directories and optional files
-	In case of directories: radiobutton to select one OR click selects
-	In case of files: checkbox to select (multiple)
--->
 	<ul id="sm-nc-files-tree"></ul>
 </div>
+<footer data-bind="visible:!files()">
+	<!--
+		visible rather than hidden: the hidden binding sets the attribute, and any
+		author rule carrying a display beats the user agent's [hidden] rule, so the
+		button could show in file mode where it means nothing. visible sets
+		display:none on the element itself.
+		Labelled from GLOBAL/SAVE: by the time the folder is ticked, saving is all
+		that is left to do, and that key is already translated everywhere.
+	-->
+	<button data-bind="click:selectFolder, disable:!folder()" name="select-folder" data-icon="folder"
+		class="button-vue" data-i18n="GLOBAL/SAVE">save</button>
+</footer>
 <footer data-bind="visible:files">
 	<button data-bind="click:attach" name="select" data-icon="paperclip" class="button-vue" data-i18n="NEXTCLOUD/FILE_ATTACH">attach</button>
 	<button data-bind="click:shareInternal" name="share-internal" data-icon="link" class="button-vue" data-i18n="NEXTCLOUD/FILE_INTERNAL">internal</button>

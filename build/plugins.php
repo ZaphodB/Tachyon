@@ -166,6 +166,22 @@ foreach (glob(ROOT_DIR . '/plugins/*', GLOB_NOSORT | GLOB_ONLYDIR) as $dir) {
 			@unlink("{$tar_destination}.gz");
 			$tar = new PharData($tar_destination);
 			$tar->buildFromDirectory('./plugins/', '/' . \preg_quote("./plugins/{$name}/", '/') . '((?!\.bak).)*$/');
+			if ($version !== $declared) {
+				// The archive is the plugin directory as it sits here, so its index.php
+				// still declares the version its author wrote. The admin panel reads the
+				// installed version from that constant and compares it with what
+				// packages.json advertises, so a build-numbered release installed fine
+				// and then offered itself again for ever (#119). Stamp the published
+				// version into the copy that ships.
+				$sIndex = file_get_contents("{$dir}/index.php");
+				$sStamped = preg_replace('/(VERSION\s*=\s*\')' . preg_quote($declared, '/') . '(\')/',
+					'${1}' . $version . '${2}', $sIndex, 1, $iCount);
+				if (1 !== $iCount) {
+					echo "  ! {$name}: could not stamp {$version} into index.php\n";
+				} else {
+					$tar["{$name}/index.php"] = $sStamped;
+				}
+			}
 			$tar->compress(Phar::GZ);
 			unlink($tar_destination);
 			rename("{$tar_destination}.gz", $tgz_destination);

@@ -365,6 +365,7 @@ Values:
   "always" - show always'),
 				'contacts_autosave'      => array(true),
                 'mail_list_grouped'      => array(false),
+                'mail_list_preview_lines' => array(0, 'Lines of the message body shown under the subject in the list (0, 1 or 2). Needs IMAP PREVIEW, RFC 8970.'),
                 'mail_use_threads'       => array(false),
 				'allow_draft_autosave'   => array(true),
 				'undo_send_delay'        => array(0, 'Seconds to delay sending (0 = disabled, max 30). Lets users cancel a send.'),

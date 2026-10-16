@@ -34,6 +34,7 @@ export class LoginUserView extends AbstractViewLogin {
 			email: SettingsGet('DevEmail'),
 			password: SettingsGet('DevPassword'),
 			signMe: false,
+			showPassword: false,
 
 			emailError: false,
 			passwordError: false,

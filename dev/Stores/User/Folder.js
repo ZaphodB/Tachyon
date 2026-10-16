@@ -87,6 +87,11 @@ FolderUserStore = new class {
 
 		self.capabilities = ko.observableArray();
 
+		// What the server offers but the administrator switched off. Kept apart
+		// from capabilities so a feature can tell "turned off here" from "your
+		// server cannot do this", which look the same in capabilities alone.
+		self.disabledCapabilities = ko.observableArray();
+
 		self.currentFolder = ko.observable(null).extend({ toggleSubscribeProperty: [self, 'selected'] });
 
 		addComputablesTo(self, {
@@ -144,6 +149,10 @@ FolderUserStore = new class {
 	 */
 	hasCapability(name) {
 		return this.capabilities().includes(name);
+	}
+
+	capabilityDisabled(name) {
+		return this.disabledCapabilities().includes(name);
 	}
 
 	allowKolab() {

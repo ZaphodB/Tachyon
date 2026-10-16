@@ -40,6 +40,7 @@ import { FolderUserStore, isAllowedKeyword } from 'Stores/User/Folder';
 import { MessageUserStore } from 'Stores/User/Message';
 import { CalendarUserStore } from 'Stores/User/Calendar';
 import { MessagelistUserStore } from 'Stores/User/Messagelist';
+import { mailBox } from 'Common/Links';
 
 import * as Local from 'Storage/Client';
 
@@ -329,6 +330,17 @@ export class MailMessageView extends AbstractViewRight {
 
 	closeMessage() {
 		currentMessage(null);
+		// The address bar still named the message that just closed, so a reload
+		// or a shared link would have reopened it. Replace rather than push: the
+		// entry this is undoing was pushed when the message opened, so Back still
+		// goes back to wherever the reader came from.
+		const folder = FolderUserStore.currentFolder();
+		folder && hasher.replaceHash(mailBox(
+			folder.fullNameHash,
+			MessagelistUserStore.page(),
+			MessagelistUserStore.listSearch(),
+			MessagelistUserStore.threadUid()
+		));
 	}
 
 	editCommand() {

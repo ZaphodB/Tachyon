@@ -1,0 +1,21 @@
+{
+    "SFILTERS": {
+        "WHEN_MESSAGE_MATCH_SEARCH_CRITERIA": "Gdy wiadomość dokładnie odpowiada kryteriom wyszukiwania:",
+        "FILTERS": "Filtry",
+        "FILTER": "Filtr",
+        "MOVE_TO_FOLDER": "Przenieś do folderu: ",
+        "CREATE_FILTER": "Utwórz filtr",
+        "EDIT_FILTERS": "Edytuj filtr",
+        "MATCHES": "Dopasowania: ",
+        "DO_THIS": "Zrób to: ",
+        "SAVE": "Zapisz",
+        "EDIT": "Edytuj",
+        "REMOVE": "Usuń",
+        "NO_FILTERS": "Nie dodano jeszcze żadnych filtrów.",
+        "THE_FOLLOWING_FILTERS_ARE_APPLIED": "Do całej poczty przychodzącej stosowane są następujące filtry: ",
+        "MARK_AS_READ": "Oznacz jako przeczytane",
+        "STAR_IT": "Oznacz to gwiazdką",
+        "PRIORITY_LABLE": "Wskaźniki priorytetu, czym wyższy oznacza, że zostanie zastosowany jako pierwszy",
+        "PRIORITY_POINTS": "Wskaźniki priorytetu"
+    }
+}

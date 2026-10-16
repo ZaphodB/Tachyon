@@ -75,7 +75,14 @@ sed 's/^auth_syslog = .*/auth_syslog = Off/' -i $TACHYON_CONFIG_FILE
     if [ ! -f "$TACHYON_ADMIN_PASSWORD_FILE" ]; then
         echo "[INFO] Creating Tachyon admin password file: $TACHYON_ADMIN_PASSWORD_FILE"
         wget -T 1 -qO- 'http://127.0.0.1:8888/?/AdminAppData/0/12345/' > /dev/null
-        echo "[INFO] Tachyon Admin Panel ready at http://localhost:8888/?admin. Login using password in $TACHYON_ADMIN_PASSWORD_FILE"
+        # Said only once there is something to say it about. This used to be
+        # printed either way, so an install where the password could not be
+        # stored still told people where to read it (#133).
+        if [ -f "$TACHYON_ADMIN_PASSWORD_FILE" ]; then
+            echo "[INFO] Tachyon Admin Panel ready at http://localhost:8888/?admin. Login using password in $TACHYON_ADMIN_PASSWORD_FILE"
+        else
+            echo "[ERROR] No admin password was generated. Check that /var/lib/tachyon is writable by www-data, then restart."
+        fi
     fi
 
     wget -T 1 -qO- 'http://127.0.0.1:8888/' > /dev/null

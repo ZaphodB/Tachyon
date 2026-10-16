@@ -289,6 +289,7 @@ export class FolderCollectionModel extends AbstractCollectionModel
 		FolderUserStore.quotaUsage(this.quotaUsage);
 		FolderUserStore.quotaLimit(this.quotaLimit);
 		FolderUserStore.capabilities(this.capabilities);
+		FolderUserStore.disabledCapabilities(this.disabledCapabilities || []);
 
 		FolderUserStore.sentFolder(normalizeFolder(SystemFolders.Sent));
 		FolderUserStore.draftsFolder(normalizeFolder(SystemFolders.Drafts));

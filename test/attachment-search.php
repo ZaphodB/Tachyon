@@ -201,4 +201,18 @@ check(count($imap->fetches) === 1 && $imap->fetches[0][1] === '201', 'Retry resu
 $imap->fetches = [];
 $imap->FilterAttachmentMessages([1, 201], false, $cache, $selected);
 check((bool) $imap->fetches, 'Sequence-number searches bypass UID classifications');
+// A sequence set is what every FETCH, STORE and COPY is built from, so it must
+// not pass through anything that only starts like a range (#140 review).
+foreach ([
+	[[1, 2, 3],                  '1:3'],
+	[['1:2'],                    '1:2'],
+	[['*:3'],                    '*:3'],
+	[['1:*'],                    '1:*'],
+	[['1:2 UID FETCH 1 BODY[]'], '1'],
+	[["1:2\r\nX"],               '1'],
+] as [$aIn, $sWant]) {
+	$sGot = (string) new \MailSo\Imap\SequenceSet($aIn);
+	check($sWant === $sGot, 'SequenceSet('.\json_encode($aIn).") gave '{$sGot}', wanted '{$sWant}'");
+}
+
 echo "Attachment search regression checks passed.\n";

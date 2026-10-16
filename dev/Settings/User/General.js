@@ -111,7 +111,7 @@ export class UserSettingsGeneral extends AbstractViewSettings {
 		 'viewHTML', 'viewImages', 'viewImagesWhitelist', 'removeColors', 'allowStyles',
 		 'allowDraftAutosave', 'undoSendDelay',
 		 'hideDeleted', 'listInlineAttachments', 'simpleAttachmentsList', 'collapseBlockquotes',
-		 'useCheckboxesInList', 'listGrouped', 'replySameFolder', 'allowSpellcheck',
+		 'useCheckboxesInList', 'listGrouped', 'messageListPreviewLines', 'replySameFolder', 'allowSpellcheck',
 		 'messageReadAuto', 'showNextMessage', 'messageNewWindow', 'markdown'
 		].forEach(name => this[name] = SettingsUserStore[name]);
 
@@ -160,7 +160,28 @@ export class UserSettingsGeneral extends AbstractViewSettings {
 					{ id: LayoutSideView, name: i18n('SETTINGS_GENERAL/LAYOUT_VERTICAL_SPLIT') },
 					{ id: LayoutBottomView, name: i18n('SETTINGS_GENERAL/LAYOUT_HORIZONTAL_SPLIT') }
 				];
-			}
+			},
+
+			previewLinesTypes: () => {
+				translateTrigger();
+				return [
+					{ id: 0, name: i18n('SETTINGS_GENERAL/PREVIEW_LINES_NONE') },
+					{ id: 1, name: i18n('SETTINGS_GENERAL/PREVIEW_LINES_ONE') },
+					{ id: 2, name: i18n('SETTINGS_GENERAL/PREVIEW_LINES_TWO') }
+				];
+			},
+
+			/**
+			 * The snippet comes from the server, over IMAP PREVIEW (RFC 8970), so
+			 * the three states have to be told apart. An administrator who turned
+			 * it off gets no control at all, since there is nothing the reader can
+			 * do about it. A server that simply cannot do it leaves the control
+			 * visible but dead, with a line saying why, which is less puzzling
+			 * than an option that silently achieves nothing.
+			 */
+			previewLinesUnsupported: () => !FolderUserStore.hasCapability('PREVIEW'),
+
+			previewLinesAdminDisabled: () => FolderUserStore.capabilityDisabled('PREVIEW')
 		});
 
 		this.addSetting('EditorDefaultType');
@@ -178,7 +199,7 @@ export class UserSettingsGeneral extends AbstractViewSettings {
 			'ViewHTML', 'ViewImages', 'ViewImagesWhitelist', 'RemoveColors', 'AllowStyles', 'AllowDraftAutosave',
 			'UndoSendDelay',
 			'HideDeleted', 'ListInlineAttachments', 'simpleAttachmentsList', 'CollapseBlockquotes',
-			'UseCheckboxesInList', 'listGrouped', 'ReplySameFolder', 'allowSpellcheck',
+			'UseCheckboxesInList', 'listGrouped', 'messageListPreviewLines', 'ReplySameFolder', 'allowSpellcheck',
 			'messageReadAuto', 'showNextMessage', 'messageNewWindow', 'markdown',
 			'DesktopNotifications', 'SoundNotification']);
 

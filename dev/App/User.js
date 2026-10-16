@@ -169,6 +169,61 @@ export class AppUser extends AbstractApp {
 				return event.returnValue = i18n('POPUPS_ASK/EXIT_ARE_YOU_SURE');
 			}
 		}, {capture: true});
+
+		this.guardExit();
+	}
+
+	/**
+	 * Back out of the last of our own history entries and the reader is gone from
+	 * the client, with nothing to warn them: there is no cancellable event for
+	 * Back, and popstate arrives after the navigation is already decided. So keep
+	 * one marked entry at the bottom of our own history and bounce off it, asking
+	 * instead of letting them fall out.
+	 *
+	 * Armed on the first click or keypress rather than at startup, because Chrome
+	 * marks a history entry pushed without user activation as skippable and walks
+	 * straight past it on Back, which would leave this guarding nothing.
+	 */
+	guardExit() {
+		let armed, asking;
+
+		const arm = () => {
+			removeEventListener('pointerdown', arm, true);
+			removeEventListener('keydown', arm, true);
+			// Mark where we stand as the floor, then step up off it, so the floor
+			// is only ever reached by backing all the way down.
+			history.replaceState({tachyonExit: 1}, '', location.href);
+			history.pushState(null, '', location.href);
+			armed = 1;
+		};
+		addEventListener('pointerdown', arm, true);
+		addEventListener('keydown', arm, true);
+
+		addEventListener('popstate', event => {
+			if (armed && event.state?.tachyonExit) {
+				// Standing on the floor now, so the next Back leaves. Step up again
+				// first: the reader keeps their place whatever they answer, and a
+				// second Back while the question is open just lands here again.
+				history.pushState(null, '', location.href);
+				if (!asking) {
+					asking = 1;
+					showScreenPopup(AskPopupView, [
+						i18n('POPUPS_ASK/EXIT_ARE_YOU_SURE'),
+						() => {
+							// Disarmed first. A tab that was opened straight onto
+							// the client has nothing underneath, so the jump below
+							// cannot go anywhere, and leaving the guard up would
+							// bounce them again on the next Back instead of just
+							// letting it through.
+							armed = asking = 0;
+							// Past the entry just pushed and past the floor.
+							history.go(-2);
+						},
+						() => asking = 0
+					]);
+				}
+			}
+		});
 	}
 
 	refresh() {

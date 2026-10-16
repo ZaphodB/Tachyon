@@ -122,6 +122,10 @@ jobs:
           done
           [ -f "$D/InRelease" ] && gpg --verify "$D/InRelease"
           [ -f "$D/Release.gpg" ] && gpg --verify "$D/Release.gpg" "$D/Release"
+          # Named by the package version, which differs from $V downstream
+          for f in "$D"/tachyon-webmail_*_all.changes; do
+            [ -f "$f" ] && gpg --verify "$f"
+          done
           # Shipped with the release it signs, so a user always has the key that
           # matches the artifacts they just downloaded
           gpg --armor --export "${{ steps.gpg.outputs.fpr }}" > "$D/tachyon-archive-keyring.asc"
@@ -139,8 +143,8 @@ jobs:
           cp "$D/tachyon-$V.zip"    "$D/tachyon-latest.zip"
           # The package version can differ from $V (downstream builds), so
           # find the one package built rather than spelling its name
-          for f in "$D"/tachyon_*_all.deb; do
-            [ -f "$f" ] && [ "$f" != "$D/tachyon_latest_all.deb" ] && cp "$f" "$D/tachyon_latest_all.deb"
+          for f in "$D"/tachyon-webmail_*_all.deb; do
+            [ -f "$f" ] && [ "$f" != "$D/tachyon-webmail_latest_all.deb" ] && cp "$f" "$D/tachyon-webmail_latest_all.deb"
           done
           ls -1 "$D"
 
@@ -203,7 +207,8 @@ jobs:
           files=(
             build/dist/releases/webmail/*/tachyon-*.tar.gz
             build/dist/releases/webmail/*/tachyon-*.zip
-            build/dist/releases/webmail/*/tachyon_*.deb
+            build/dist/releases/webmail/*/tachyon-webmail_*.deb
+            build/dist/releases/webmail/*/tachyon-webmail_*.changes
             build/dist/releases/webmail/*/tachyon-*-translation-status.txt
             build/dist/releases/webmail/*/tachyon-archive-keyring.asc
             build/dist/releases/webmail/*/*.asc

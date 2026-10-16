@@ -433,10 +433,29 @@ trait UserAuth
 
 	public function Logout(bool $bMain) : void
 	{
-//		Cookies::clear(Utils::SESSION_TOKEN);
+		if ($bMain) {
+			// Telling the browser to drop its cookies is not the session ending.
+			// The record getMainAccountFromToken() checks lives on the server, and
+			// FileStorage::Get() touches it on every read, so a copied cookie never
+			// ages out of the three hour sweep for as long as somebody keeps using
+			// it: logging out left a stolen session working. Reported by Fathi Ben
+			// Nasr (GHSA-gc87-g2gf-xj6q).
+			//
+			// Resolved before the cookies go, since that is what the lookup reads.
+			// Reached re-entrantly from getMainAccountFromToken() itself, where the
+			// account is null and there is no session to destroy, which the guard
+			// below covers.
+			$sSessionToken = Utils::GetSessionToken(false);
+			$oMainAccount = $this->getMainAccountFromToken(false);
+			if ($sSessionToken && $oMainAccount) {
+				$this->StorageProvider()->Clear($oMainAccount, StorageType::SESSION, $sSessionToken);
+			}
+			Cookies::clear(Utils::SESSION_TOKEN);
+		}
 		Cookies::clear(self::AUTH_ADDITIONAL_TOKEN_KEY);
 		$bMain && Cookies::clear(self::AUTH_SPEC_TOKEN_KEY);
-		// TODO: kill SignMe data to prevent automatic login?
+		// Only for the main account: logging out of an additional one must leave
+		// the session it is attached to alone.
 	}
 
 	/**

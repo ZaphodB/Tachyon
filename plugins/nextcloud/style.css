@@ -5,13 +5,64 @@
 	clear: right;
 	line-height: 2.5em;
 }
+
+/*
+ * A file row is the name as text with the checkbox appended after it, and the
+ * checkbox used to be floated right. A float sits at the top of its line box
+ * rather than the middle of it, so against a 2.5em row the box rode high and
+ * ended up far from the name it belongs to (#117). Lay the row out instead,
+ * and put the box first, where a list of selectable things puts it.
+ *
+ * Folder rows hold a <details> with the subtree inside, so they must stay
+ * block level: this is scoped to the file rows, which carry data-icon="file".
+ */
+#V-PopupsNextcloudFiles li[data-icon="file"] {
+	align-items: center;
+	display: flex;
+	gap: 0.5em;
+}
+#V-PopupsNextcloudFiles li[data-icon="file"] input {
+	flex: none;
+	margin: 0;
+}
 #V-PopupsNextcloudFiles li input,
 #V-PopupsNextcloudFiles li button {
 	cursor: pointer;
+}
+/*
+ * The create-a-folder row only: a child combinator, or this also catches the
+ * radio nested in details > summary and floats it away from its name.
+ */
+#V-PopupsNextcloudFiles li:not([data-icon="file"]) > input,
+#V-PopupsNextcloudFiles li:not([data-icon="file"]) > button {
 	float: right;
 	margin: 0 0 0 0.5em;
 }
 
 #rl-app .squire-wysiwyg a {
 	text-decoration: underline;
+}
+
+/*
+ * Folder rows in select mode carry a radio ahead of the name, inside the
+ * <summary> that opens the subtree. The summary is deliberately left as it is:
+ * giving it display:flex drops the disclosure triangle in Chrome and Safari,
+ * because that marker comes from display:list-item. Align the radio instead.
+ */
+#V-PopupsNextcloudFiles summary input[type="radio"] {
+	cursor: pointer;
+	margin: 0 0.5em 0 0;
+	vertical-align: middle;
+}
+#V-PopupsNextcloudFiles summary > span {
+	vertical-align: middle;
+}
+
+/* The name is a hit target for the box, so it should look like one. */
+#V-PopupsNextcloudFiles li[data-icon="file"] label {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	gap: 0.5em;
+	width: 100%;
 }

@@ -203,6 +203,7 @@ trait User
 		$this->setSettingsFromParams($oSettings, 'MaxBlockquotesLevel', 'int');
 		$this->setSettingsFromParams($oSettings, 'simpleAttachmentsList', 'bool');
 		$this->setSettingsFromParams($oSettings, 'listGrouped', 'bool');
+		$this->setSettingsFromParams($oSettings, 'messageListPreviewLines', 'int');
 		$this->setSettingsFromParams($oSettings, 'ContactsAutosave', 'bool');
 		$this->setSettingsFromParams($oSettings, 'ContactsHideNoEmail', 'bool');
 		$this->setSettingsFromParams($oSettings, 'calendarWeekNumbers', 'bool');

@@ -232,12 +232,19 @@ export class Selector {
 	}
 
 	/**
-	 * @returns {boolean}
+	 * @param {boolean=} bForce
+	 * @param {boolean=} bKeyboard = false, true when stepping with the arrow keys
 	 */
-	autoSelect(bForce) {
-		(bForce || (this.oCallbacks.canSelect || (()=>1))())
-		&& this.focusedItem()
-		&& this.selectedItem(this.focusedItem());
+	autoSelect(bForce, bKeyboard) {
+		const item = (bForce || (this.oCallbacks.canSelect || (()=>1))()) && this.focusedItem();
+		if (item) {
+			// Remembered so ItemSelect can tell this apart from a click, and tell
+			// the two kinds apart. The callback is debounced by 300ms, so a
+			// synchronous flag would be gone by the time it runs.
+			this.autoSelected = item;
+			this.autoSelectedKeyboard = !!bKeyboard;
+			this.selectedItem(item);
+		}
 	}
 
 	/**
@@ -313,7 +320,7 @@ export class Selector {
 
 			if (result) {
 				this.focusedItem(result);
-				!this.list.hasChecked() && this.autoSelect(bForceSelect);
+				!this.list.hasChecked() && this.autoSelect(bForceSelect, true);
 				this.scrollToFocused();
 			}
 		}

@@ -28,6 +28,12 @@ class MailClient
 {
 	use \MailSo\Log\Inherit;
 
+	/**
+	 * Pairs accepted in one MessageListByTuples() call. A page, not a mailbox:
+	 * the caller is handing over a list it has already narrowed to one screen.
+	 */
+	public const MESSAGE_TUPLES_LIMIT = 1000;
+
 	private \MailSo\Imap\ImapClient $oImapClient;
 
 	private bool $bThreadSort = false;
@@ -1099,13 +1105,88 @@ class MailClient
 	 */
 	protected function MessageListMultiFolderFetch(MessageCollection $oMessageCollection, array $aTuples) : void
 	{
-		$aGrouped = array();
+		$oMessageCollection->exchangeArray(
+			$this->fetchMessageTuples(static::normalizeMessageTuples($aTuples))
+		);
+	}
+
+	/**
+	 * Fetches exactly the messages named by [folder, uid] pairs, in the order given.
+	 *
+	 * For a caller that works out the page itself, from an external search index or
+	 * a conversation order, and wants the core to fetch and render it rather than
+	 * reimplementing either. Everything after "which messages" is shared with the
+	 * native search.
+	 *
+	 * Pairs are grouped per folder for one FETCH each, since FETCH only reads the
+	 * selected folder, and the caller's order is restored afterwards. The same pair
+	 * twice is fetched once and keeps its first position.
+	 *
+	 * A folder that cannot be selected is skipped with a log line rather than
+	 * failing the page, as RFC 7377 requires of a multi-folder search. A pair that
+	 * does not come back, whether because its folder was skipped or because the
+	 * message has moved or gone since the caller's index saw it, is reported in
+	 * $aMissing, so the page can be filled and the index corrected. Those are the
+	 * caller's own values coming back, so it reaches nothing new.
+	 *
+	 * Leaves whichever folder it fetched last selected: select your own afterwards.
+	 *
+	 * @param array $aTuples [[string $sFolderName, int $iUid], ...], at most 1000
+	 * @param ?array $aMissing filled with the pairs that did not come back
+	 *
+	 * @throws \ValueError
+	 */
+	public function MessageListByTuples(array $aTuples, ?array &$aMissing = null) : MessageCollection
+	{
+		if (static::MESSAGE_TUPLES_LIMIT < \count($aTuples)) {
+			throw new \ValueError('At most ' . static::MESSAGE_TUPLES_LIMIT . ' pairs per call');
+		}
+		$oMessageCollection = new MessageCollection;
+		$oMessageCollection->exchangeArray(
+			$this->fetchMessageTuples(static::normalizeMessageTuples($aTuples), $aMissing)
+		);
+		return $oMessageCollection;
+	}
+
+	/**
+	 * Checked and deduplicated pairs, keyed so the first position of a repeat wins.
+	 * The key holds a NUL, which a folder name is refused for carrying.
+	 *
+	 * @throws \ValueError
+	 */
+	private static function normalizeMessageTuples(array $aTuples) : array
+	{
+		$aOrder = array();
 		foreach ($aTuples as $aTuple) {
+			if (!\is_array($aTuple) || 2 > \count($aTuple)) {
+				throw new \ValueError('Each pair must be [folder, uid]');
+			}
+			$sFolderName = (string) $aTuple[0];
+			if (\preg_match('/[\r\n\x00]/', $sFolderName)) {
+				throw new \ValueError('Folder name must not hold CR, LF or NUL');
+			}
+			$iUid = (int) $aTuple[1];
+			if (\strlen($sFolderName) && 0 < $iUid) {
+				$sKey = $sFolderName . "\x00" . $iUid;
+				isset($aOrder[$sKey]) || ($aOrder[$sKey] = array($sFolderName, $iUid));
+			}
+		}
+		return $aOrder;
+	}
+
+	/**
+	 * @param array $aOrder from normalizeMessageTuples()
+	 * @param ?array $aMissing the pairs no message came back for
+	 */
+	private function fetchMessageTuples(array $aOrder, ?array &$aMissing = null) : array
+	{
+		$aGrouped = array();
+		foreach ($aOrder as $aTuple) {
 			$aGrouped[$aTuple[0]][] = $aTuple[1];
 		}
 
 		$aFetchItems = $this->getMessageListFetchItems();
-		$aMessages = array();
+		$aFound = array();
 		foreach ($aGrouped as $sFolderName => $aUids) {
 			try {
 				$this->oImapClient->FolderExamine($sFolderName);
@@ -1115,18 +1196,26 @@ class MailClient
 				continue;
 			}
 			$oRange = new SequenceSet($aUids);
-			// FETCH does not respond in the requested order, so prefill to restore it
-			$aFolderMessages = \array_fill_keys($aUids, null);
 			foreach ($this->oImapClient->FetchIterate($aFetchItems, (string) $oRange, true) as $oFetchResponse) {
 				$oMessage = Message::fromFetchResponse($sFolderName, $oFetchResponse);
 				if ($oMessage) {
-					$aFolderMessages[$oFetchResponse->GetFetchValue(FetchType::UID)] = $oMessage;
+					$aFound[$sFolderName . "\x00" . (int) $oFetchResponse->GetFetchValue(FetchType::UID)] = $oMessage;
 				}
 			}
-			$aMessages = \array_merge($aMessages, \array_values(\array_filter($aFolderMessages)));
 		}
 
-		$oMessageCollection->exchangeArray($aMessages);
+		// FETCH does not respond in the requested order, and nor do the folders
+		// against each other, so the caller's order is rebuilt from the keys.
+		$aMessages = array();
+		$aMissing = array();
+		foreach ($aOrder as $sKey => $aTuple) {
+			if (isset($aFound[$sKey])) {
+				$aMessages[] = $aFound[$sKey];
+			} else {
+				$aMissing[] = $aTuple;
+			}
+		}
+		return $aMessages;
 	}
 
 	public function FindMessageUidByMessageId(string $sFolderName, string $sMessageId) : ?int

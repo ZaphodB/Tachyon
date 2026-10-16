@@ -176,7 +176,9 @@ MessagelistUserStore.notifyNewMessages = (folder, newMessages) => {
 				i18n('MESSAGE_LIST/NEW_MESSAGE_NOTIFICATION', {
 					COUNT: len
 				}),
-				{ Url: mailBox(newMessages[0].folder) }
+				// The hash, not the full name: a full name may hold the delimiter
+				// and the route would read the tail as page and search (#153)
+				{ Url: mailBox(getFolderFromCacheList(newMessages[0].folder)?.fullNameHash) }
 			);
 		} else {
 			newMessages.forEach(item => {

@@ -9,6 +9,7 @@ import { AppUserStore } from 'Stores/User/App';
 import { AccountUserStore } from 'Stores/User/Account';
 import { FolderUserStore } from 'Stores/User/Folder';
 import { MessagelistUserStore } from 'Stores/User/Messagelist';
+import { MessageUserStore } from 'Stores/User/Message';
 
 import { SystemDropDownUserView } from 'View/User/SystemDropDown';
 import { MailFolderList } from 'View/User/MailBox/FolderList';
@@ -70,19 +71,36 @@ export class MailBoxUserScreen extends AbstractScreen {
 		// Only works when FolderUserStore.folderList() is loaded
 		const folder = getFolderFromHashMap(folderHash.replace(/~([\d]+)$/, ''));
 		if (folder) {
+			page = 1 > page ? 1 : page;
+			// Opening a message writes the address bar now, so this runs on every
+			// message click. Reload the list only when the list itself moved, or
+			// each click would refetch the list sitting behind the message.
+			const listUnchanged = FolderUserStore.currentFolder() === folder
+				&& MessagelistUserStore.page() === page
+				&& MessagelistUserStore.listSearch() === search;
+
 			FolderUserStore.currentFolder(folder);
-			MessagelistUserStore.page(1 > page ? 1 : page);
+			MessagelistUserStore.page(page);
 			MessagelistUserStore.listSearch(search);
 			if (messageUid) {
-				let message = new MessageModel;
-				message.folder = folderHash;
-				message.uid = messageUid;
-				populateMessageBody(message);
+				const current = MessageUserStore.message();
+				// Usually already on screen, put there by the click that wrote this
+				// hash. Fetching it again is what made this idea get shelved before.
+				if (!current || current.uid != messageUid || current.folder !== folderHash) {
+					let message = new MessageModel;
+					message.folder = folderHash;
+					message.uid = messageUid;
+					populateMessageBody(message);
+				}
 			} else {
+				// No message in the hash: Back out of one, or any move to the plain
+				// folder. Close whatever is open, which is what the Back button is
+				// expected to do.
+				MessageUserStore.message(null);
 				let threadUid = folderHash.replace(/^.+~(\d+)$/, '$1');
 				MessagelistUserStore.threadUid((folderHash === threadUid) ? 0 : pInt(threadUid));
 			}
-			MessagelistUserStore.reload();
+			listUnchanged || MessagelistUserStore.reload();
 		}
 	}
 

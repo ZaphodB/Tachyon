@@ -5,7 +5,7 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 	const
 		NAME = 'Nextcloud',
 		// Keep upstream metadata if you prefer; this is not functional.
-		VERSION = '2.39.2',
+		VERSION = '2.41.0',
 		RELEASE  = '2026-09-29',
 		CATEGORY = 'Integrations',
 		DESCRIPTION = 'Integrate with Nextcloud v20+',
@@ -180,9 +180,9 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 			}
 
 			$sSaveFolder = $sSaveFolder ?: 'Emails';
-			$oFiles = \OCP\Files::getStorage('files');
+			$oFiles = static::userFolder();
 			if ($oFiles) {
-				$oFiles->is_dir($sSaveFolder) || $oFiles->mkdir($sSaveFolder);
+				$oFiles->nodeExists($sSaveFolder) || $oFiles->newFolder($sSaveFolder);
 			}
 			$aResult['folder'] = $sSaveFolder;
 			$aResult['filename'] = \MailSo\Base\Utils::SecureFileName(
@@ -192,8 +192,15 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 
 			$oMailClient->MessageMimeStream(
 				function ($rResource) use ($oFiles, $aResult) {
-					if (\is_resource($rResource)) {
-						$aResult['success'] = $oFiles->file_put_contents("{$aResult['folder']}/{$aResult['filename']}", $rResource);
+					if ($oFiles && \is_resource($rResource)) {
+						// newFile() returns the node and reports failure by throwing,
+						// so there is nothing falsy to test.
+						try {
+							$oFiles->newFile("{$aResult['folder']}/{$aResult['filename']}", $rResource);
+							$aResult['success'] = true;
+						} catch (\Throwable $e) {
+							\Tachyon\Util\Log::warning('Nextcloud', 'save message: ' . $e->getMessage());
+						}
 					}
 				},
 				(string) $aValues['folder'],
@@ -208,24 +215,24 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 	public function DoAttachmentsActions(\Tachyon\Util\AttachmentsAction $data)
 	{
 		if (static::isLoggedIn() && 'nextcloud' === $data->action) {
-			$oFiles = \OCP\Files::getStorage('files');
-			if ($oFiles && \method_exists($oFiles, 'file_put_contents')) {
+			$oFiles = static::userFolder();
+			if ($oFiles) {
 				$sSaveFolder = \ltrim($this->jsonParam('NcFolder', ''), '/');
 				$sSaveFolder = $sSaveFolder ?: 'Attachments';
-				$oFiles->is_dir($sSaveFolder) || $oFiles->mkdir($sSaveFolder);
+				$oFiles->nodeExists($sSaveFolder) || $oFiles->newFolder($sSaveFolder);
 				$data->result = true;
 				foreach ($data->items as $aItem) {
 					$sSavedFileName = empty($aItem['fileName']) ? 'file.dat' : $aItem['fileName'];
 					if (!empty($aItem['data'])) {
 						$sSavedFileNameFull = static::SmartFileExists($sSaveFolder.'/'.$sSavedFileName, $oFiles);
-						if (!$oFiles->file_put_contents($sSavedFileNameFull, $aItem['data'])) {
+						if (!static::writeFile($oFiles, $sSavedFileNameFull, $aItem['data'])) {
 							$data->result = false;
 						}
 					} else if (!empty($aItem['fileHash'])) {
 						$fFile = $data->filesProvider->GetFile($data->account, $aItem['fileHash'], 'rb');
 						if (\is_resource($fFile)) {
 							$sSavedFileNameFull = static::SmartFileExists($sSaveFolder.'/'.$sSavedFileName, $oFiles);
-							if (!$oFiles->file_put_contents($sSavedFileNameFull, $fFile)) {
+							if (!static::writeFile($oFiles, $sSavedFileNameFull, $fFile)) {
 								$data->result = false;
 							}
 							if (\is_resource($fFile)) {
@@ -414,11 +421,44 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 		);
 	}
 
+	/**
+	 * newFile() returns the node and reports failure by throwing, where the
+	 * removed file_put_contents() returned false, so each caller would have
+	 * gone on believing a failed save had worked.
+	 */
+	private static function writeFile(\OCP\Files\Folder $oFolder, string $sPath, $mData) : bool
+	{
+		try {
+			$oFolder->newFile($sPath, $mData);
+			return true;
+		} catch (\Throwable $e) {
+			\Tachyon\Util\Log::warning('Nextcloud', "save {$sPath}: " . $e->getMessage());
+			return false;
+		}
+	}
+
+	/**
+	 * The signed-in user's files, as an OCP\Files\Folder.
+	 *
+	 * Replaces \OCP\Files::getStorage('files'), which was deprecated in
+	 * Nextcloud 14 and has since been removed: calling it threw
+	 * "Call to undefined method" and the save failed with the spinner still
+	 * turning (#116). The same lookup is already used by DoSaveFile above.
+	 */
+	private static function userFolder() : ?\OCP\Files\Folder
+	{
+		$oUser = \OC::$server->get(\OCP\IUserSession::class)->getUser();
+		if (!$oUser) {
+			return null;
+		}
+		return \OC::$server->get(\OCP\Files\IRootFolder::class)->getUserFolder($oUser->getUID());
+	}
+
 	private static function SmartFileExists(string $sFilePath, $oFiles) : string
 	{
 		$sFilePath = \str_replace('\\', '/', \trim($sFilePath));
 
-		if (!$oFiles->file_exists($sFilePath)) {
+		if (!$oFiles->nodeExists($sFilePath)) {
 			return $sFilePath;
 		}
 
@@ -433,7 +473,7 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 				' ('.$iIndex.')'.
 				(empty($aFileInfo['extension']) ? '' : '.'.$aFileInfo['extension'])
 			;
-			if (!$oFiles->file_exists($sFilePathNew)) {
+			if (!$oFiles->nodeExists($sFilePathNew)) {
 				return $sFilePathNew;
 			}
 			if (10 < $iIndex) {

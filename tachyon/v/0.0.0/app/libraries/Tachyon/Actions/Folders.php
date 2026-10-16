@@ -92,9 +92,23 @@ trait Folders
 				// ignore
 			}
 
-			$aCapabilities = \array_values(\array_filter($this->ImapClient()->Capability() ?: [], function ($item) {
+			$fPublic = function ($item) {
 				return !\preg_match('/^(IMAP|AUTH|LOGIN|SASL)/', $item);
-			}));
+			};
+			$aCapabilities = \array_values(\array_filter($this->ImapClient()->Capability() ?: [], $fPublic));
+			/**
+			 * What the server offers but the administrator switched off, so the
+			 * client can tell that apart from the server not offering it at all.
+			 * Both look like a missing capability otherwise, and a setting that
+			 * depends on one needs to say which of the two it is.
+			 */
+			$aDisabledCapabilities = \array_values(\array_filter(
+				\array_diff(
+					$this->ImapClient()->Capabilities() ?: [],
+					$this->ImapClient()->Capability() ?: []
+				),
+				$fPublic
+			));
 
 			$oFolderCollection = \array_merge(
 				$oFolderCollection->jsonSerialize(),
@@ -103,7 +117,8 @@ trait Folders
 					'quotaLimit' => $aQuota ? $aQuota[1] * 1024 : null,
 					'namespace' => $oNamespaces ? $oNamespaces->GetPersonalPrefix() : '',
 					'namespaces' => $oNamespaces,
-					'capabilities' => $aCapabilities
+					'capabilities' => $aCapabilities,
+					'disabledCapabilities' => $aDisabledCapabilities
 				)
 			);
 		}

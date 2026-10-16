@@ -1,0 +1,463 @@
+/*
+ * Material: a Material Design 3 look, close to modern Gmail.
+ *
+ * Rounded "Compose" card, pill-shaped folder highlight, a large pill search
+ * field, unread rows white and bold with read rows tinted, the hover lift on
+ * message rows, and no size column in the list.
+ *
+ * Everything is driven by the --g-* tokens below, which are then mapped onto
+ * Tachyon's own theme variables. Light is the base. Dark is applied twice, the
+ * same way the other bundled themes do it: once for people who have not chosen
+ * a mode and whose system asks for dark, and once for people who picked dark
+ * explicitly. The media query carries :not([data-color-scheme="light"]) so that
+ * choosing light on a machine set to dark stays light.
+ *
+ * No web fonts are loaded (the CSP blocks third party fonts anyway); Roboto is
+ * used when installed, otherwise the system UI font.
+ */
+
+/* ---------- Design tokens: light (base) ---------- */
+:root {
+	color-scheme: light;
+
+	--g-font: Roboto, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+	--g-bg: #f6f8fc;             /* page background */
+	--g-surface: #ffffff;         /* list / reading pane */
+	--g-text: #1f1f1f;
+	--g-text-2: #444746;          /* secondary text */
+	--g-text-3: #5f6368;          /* muted (dates, sizes) */
+	--g-divider: #f1f3f4;
+	--g-border: #dadce0;
+	--g-hover: rgba(68, 71, 70, .08);
+	--g-row-read: #f2f6fc;        /* read rows are tinted, unread are white */
+	--g-row-selected: #c2dbff;
+	--g-nav-active: #d3e3fd;
+	--g-nav-active-text: #001d35;
+	--g-compose: #c2e7ff;
+	--g-compose-text: #001d35;
+	--g-search: #e9eef6;
+	--g-accent: #0b57d0;
+	--g-badge: #0b57d0;
+	--g-badge-text: #ffffff;
+	--g-star: #f4b400;
+	--g-on-accent: #ffffff;
+	--g-scrollbar: #bdc1c6;
+	--g-row-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0,
+		0 1px 2px 0 rgba(60, 64, 67, .3), 0 1px 3px 1px rgba(60, 64, 67, .15);
+
+	/* ---- Tachyon theme variables, mapped to the tokens ---- */
+	--main-color: var(--g-text);
+	--main-bg-color: var(--g-bg);
+	--main-bg-image: none;
+	--main-font-size: 14px;
+	--link-color: var(--g-accent);
+	--border-color: var(--g-border);
+	--border-radius: 8px;
+	--hr-color: var(--g-divider);
+	--panel-bg-clr: var(--g-surface);
+
+	--loading-color: var(--g-text-3);
+	--login-color: var(--g-text);
+	--login-bg-color: var(--g-surface);
+	--login-box-shadow: 0 1px 3px rgba(60, 64, 67, .3);
+	--login-border: 0;
+	--login-border-radius: 28px;
+	--spinner-color: var(--g-accent);
+
+	--dropdown-menu-color: var(--g-text);
+	--dropdown-menu-bg-color: var(--g-surface);
+	--dropdown-menu-hover-bg-color: var(--g-hover);
+	--dropdown-menu-hover-color: var(--g-text);
+	--dropdown-menu-disabled-color: #9aa0a6;
+	--dropdown-menu-border-clr: transparent;
+
+	--folders-color: var(--g-text-2);
+	--folders-disabled-color: #9aa0a6;
+	--folders-selected-color: var(--g-nav-active-text);
+	--folders-selected-bg-color: var(--g-nav-active);
+	--folders-focused-color: var(--g-nav-active-text);
+	--folders-focused-bg-color: var(--g-hover);
+	--folders-hover-color: var(--g-text);
+	--folders-hover-bg-color: var(--g-hover);
+	--folders-drop-color: var(--g-nav-active-text);
+	--folders-drop-bg-color: var(--g-compose);
+	--unread-count-color: var(--g-badge-text);
+	--unread-count-bg-color: var(--g-badge);
+
+	--settings-menu-color: var(--g-text-2);
+	--settings-menu-selected-color: var(--g-nav-active-text);
+	--settings-menu-selected-bg-color: var(--g-nav-active);
+	--settings-menu-hover-color: var(--g-text);
+	--settings-menu-hover-bg-color: var(--g-hover);
+
+	--message-list-toolbar-bg-color: var(--g-surface);
+	--message-header-bg-clr: var(--g-surface);
+
+	--dialog-clr: var(--g-text);
+	--dialog-bg-clr: var(--g-surface);
+	--dialog-border-clr: transparent;
+	--dialog-border-radius: 16px;
+
+	--btn-clr: var(--g-text-2);
+	--btn-bg-clr: transparent;
+	--btn-border-clr: transparent;
+	--btn-border-radius: 20px;
+	--btn-success-bg-clr: var(--g-accent);
+	--btn-danger-bg-clr: #d93025;
+
+	--input-clr: var(--g-text);
+	--input-bg-clr: var(--g-surface);
+	--input-border-clr: #747775;
+	--input-border-radius: 4px;
+	--input-focus-border-clr: var(--g-accent);
+
+	--tr-hover-bg-clr: var(--g-hover);
+	--tr-odd-bg-clr: transparent;
+	--tab-active-bg-clr: var(--g-nav-active);
+	--tab-hover-border-clr: var(--g-border);
+}
+
+/* ---------- Design tokens: dark ---------- */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-color-scheme="light"]) {
+		color-scheme: dark;
+		--g-bg: #1b1b1b;
+		--g-surface: #202124;
+		--g-text: #e3e3e3;
+		--g-text-2: #c4c7c5;
+		--g-text-3: #9aa0a6;
+		--g-divider: #2d2e30;
+		--g-border: #3c4043;
+		--g-hover: rgba(232, 234, 237, .08);
+		--g-row-read: #1b1b1b;
+		--g-row-selected: #004a77;
+		--g-nav-active: #004a77;
+		--g-nav-active-text: #c2e7ff;
+		--g-compose: #004a77;
+		--g-compose-text: #c2e7ff;
+		--g-search: #2d2e30;
+		--g-accent: #a8c7fa;
+		--g-badge: #a8c7fa;
+		--g-badge-text: #062e6f;
+		--g-on-accent: #062e6f;
+		--g-scrollbar: #5f6368;
+		--g-row-shadow: inset 1px 0 0 #3c4043, inset -1px 0 0 #3c4043,
+			0 1px 3px 0 rgba(0, 0, 0, .6);
+		--input-border-clr: #8e918f;
+	}
+}
+
+:root[data-color-scheme="dark"] {
+	color-scheme: dark;
+	--g-bg: #1b1b1b;
+	--g-surface: #202124;
+	--g-text: #e3e3e3;
+	--g-text-2: #c4c7c5;
+	--g-text-3: #9aa0a6;
+	--g-divider: #2d2e30;
+	--g-border: #3c4043;
+	--g-hover: rgba(232, 234, 237, .08);
+	--g-row-read: #1b1b1b;
+	--g-row-selected: #004a77;
+	--g-nav-active: #004a77;
+	--g-nav-active-text: #c2e7ff;
+	--g-compose: #004a77;
+	--g-compose-text: #c2e7ff;
+	--g-search: #2d2e30;
+	--g-accent: #a8c7fa;
+	--g-badge: #a8c7fa;
+	--g-badge-text: #062e6f;
+	--g-on-accent: #062e6f;
+	--g-scrollbar: #5f6368;
+	--g-row-shadow: inset 1px 0 0 #3c4043, inset -1px 0 0 #3c4043,
+		0 1px 3px 0 rgba(0, 0, 0, .6);
+	--input-border-clr: #8e918f;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+html, body {
+	font-family: var(--g-font);
+	background: var(--g-bg);
+	color: var(--g-text);
+}
+
+/* Drag handle between folders and list: invisible like Gmail */
+#rl-left .resizer { background: transparent; }
+
+/* ------------------------------------------------------------------ */
+/* Left: Compose + folders                                             */
+/* ------------------------------------------------------------------ */
+.b-folders .b-toolbar {
+	padding: 8px 8px 16px;
+	height: auto;
+}
+
+.b-folders .buttonCompose,
+.b-folders .buttonCompose.btn-success {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	width: auto;
+	min-width: 140px;
+	height: 56px;
+	padding: 0 24px 0 16px;
+	border: 0 !important;
+	border-radius: 16px !important;
+	background: var(--g-compose) !important;
+	color: var(--g-compose-text) !important;
+	font: 500 14px/1 var(--g-font);
+	letter-spacing: .25px;
+	text-shadow: none;
+	box-shadow: none;
+	transition: box-shadow .15s;
+}
+.b-folders .buttonCompose:hover {
+	box-shadow: 0 1px 2px rgba(60, 64, 67, .3), 0 1px 3px 1px rgba(60, 64, 67, .15);
+}
+
+.b-folders .b-content { padding-right: 16px; }
+
+.b-folders li a,
+.b-folders li a.selectable {
+	display: flex;
+	align-items: center;
+	height: 32px;
+	line-height: 32px;
+	padding: 0 12px 0 26px;
+	border-radius: 0 16px 16px 0;
+	color: var(--g-text-2);
+	font-size: 14px;
+	background: transparent;
+}
+.b-folders li a:hover { background: var(--g-hover); color: var(--g-text); }
+.b-folders li a.selected,
+.b-folders li a.selected:hover {
+	background: var(--g-nav-active) !important;
+	color: var(--g-nav-active-text) !important;
+	font-weight: 700;
+}
+
+/* Unread count: plain bold number on the right, as in Gmail */
+.b-folders li a[data-unread]::after {
+	margin-left: auto;
+	padding: 0;
+	background: transparent !important;
+	color: inherit !important;
+	font-size: 12px;
+	font-weight: 700;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.b-folders hr { border-color: transparent; margin: 8px 0; }
+
+/* Footer buttons (collapse / manage folders / settings) */
+.b-folders .b-footer .btn {
+	background: transparent !important;
+	color: var(--g-text-2) !important;
+	border: 0 !important;
+	border-radius: 50% !important;
+	width: 40px;
+	height: 40px;
+	font-size: 18px;
+}
+.b-folders .b-footer .btn:hover { background: var(--g-hover) !important; }
+
+/* ------------------------------------------------------------------ */
+/* Toolbars: round, borderless icon buttons                            */
+/* ------------------------------------------------------------------ */
+#rl-right .btn-toolbar .btn,
+#V-SystemDropDown .btn {
+	background: transparent !important;
+	color: var(--g-text-2) !important;
+	border: 0 !important;
+	border-radius: 20px !important;
+	box-shadow: none !important;
+	text-shadow: none;
+	min-width: 40px;
+}
+#rl-right .btn-toolbar .btn:hover,
+#V-SystemDropDown .btn:hover { background: var(--g-hover) !important; }
+#rl-right .btn-toolbar .btn.disabled { opacity: .38; }
+
+/* Account button top-right */
+#top-system-dropdown-id {
+	font-weight: 500;
+	color: var(--g-text) !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Message list                                                        */
+/* ------------------------------------------------------------------ */
+#V-MailMessageList .messageList {
+	background: var(--g-surface);
+	border: 0;
+	border-radius: 16px;
+	box-shadow: none !important;
+	overflow: hidden;
+	margin-right: 16px;
+	margin-bottom: 16px;
+}
+
+/* Search: big pill like Gmail's top search */
+.messageList .second-toolbar {
+	background: var(--g-surface);
+	border-bottom: 1px solid var(--g-divider);
+}
+.search-input-wrp input,
+.search-input-wrp input[type="search"],
+.search-input-wrp input[type="text"] {
+	height: 48px;
+	padding: 0 20px 0 48px;
+	border: 0 !important;
+	border-radius: 24px !important;
+	background: var(--g-search) !important;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%235f6368'%3E%3Cpath d='M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: 16px center !important;
+	color: var(--g-text) !important;
+	font: 16px var(--g-font);
+	box-shadow: none !important;
+}
+.search-input-wrp input:focus {
+	background-color: var(--g-surface) !important;
+	box-shadow: 0 1px 1px rgba(65, 69, 73, .3), 0 1px 3px 1px rgba(65, 69, 73, .15) !important;
+}
+.messageList .buttonMoreSearch {
+	background: transparent !important;
+	border: 0 !important;
+	color: var(--g-text-2) !important;
+}
+
+.messageList .listClear a,
+.messageList .listClear { color: var(--g-accent); font-weight: 500; }
+
+/* Rows */
+.messageListItem {
+	position: relative;
+	line-height: 40px;
+	border: 0 !important;
+	border-bottom: 1px solid var(--g-divider) !important;
+	background: var(--g-row-read) !important;
+	color: var(--g-text-2) !important;
+	font-size: 14px;
+	cursor: pointer;
+}
+.messageListItem.unseen {
+	background: var(--g-surface) !important;
+	color: var(--g-text) !important;
+}
+.messageListItem.unseen .senderParent,
+.messageListItem.unseen .subjectParent .subject,
+.messageListItem.unseen time {
+	font-weight: 700;
+	color: var(--g-text);
+}
+.messageListItem:not(.unseen) .senderParent,
+.messageListItem:not(.unseen) .subjectParent { font-weight: 400; }
+
+/* Hover lift, the signature Gmail effect */
+.messageListItem:hover {
+	box-shadow: var(--g-row-shadow);
+	z-index: 1;
+}
+
+/* Keyboard focus / open message / checked */
+.messageListItem.focused { box-shadow: inset 4px 0 0 var(--g-text-2); }
+.messageListItem.selected { background: var(--g-nav-active) !important; }
+.messageListItem.checked,
+.messageListItem.checked.unseen { background: var(--g-row-selected) !important; }
+
+/* Column layout: sender | subject — snippet | date */
+.messageListItem .senderParent {
+	flex: 0 0 200px;
+	width: 200px;
+	padding-right: 16px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.messageListItem .subjectParent { flex: 1 1 auto; color: var(--g-text-2); }
+.messageListItem .subjectParent .subject { color: var(--g-text); }
+.messageListItem.unseen .subjectParent { color: var(--g-text-2); }
+
+/* Gmail doesn't show sizes in the list */
+.messageListItem .sizeParent { display: none; }
+
+.messageListItem time {
+	min-width: 72px;
+	padding-right: 16px;
+	text-align: right;
+	font-size: 12px;
+	color: var(--g-text-3);
+}
+
+/* Checkbox and star */
+.messageListItem .messageCheckbox { padding-left: 12px; color: #9aa0a6; }
+.messageListItem .messageCheckbox:hover,
+.messageListItem .flagParent:hover { color: var(--g-text); }
+.messageListItem .flagParent { color: #9aa0a6; }
+.messageListItem.flagged .flagParent,
+.messageListItem .flagParent .icon-star { color: var(--g-star) !important; }
+
+/* ------------------------------------------------------------------ */
+/* Reading pane                                                        */
+/* ------------------------------------------------------------------ */
+#V-MailMessageView,
+#V-MailMessageView .messageView {
+	background: var(--g-surface);
+	border: 0;
+	border-radius: 16px;
+}
+#V-MailMessageView .subjectParent,
+#V-MailMessageView .subject {
+	font: 400 22px/28px var(--g-font);
+	color: var(--g-text);
+}
+#V-MailMessageView .messageItemHeader {
+	background: var(--g-surface);
+	border-bottom: 0;
+}
+#V-MailMessageView .fromPlace,
+#V-MailMessageView .from { font-weight: 700; color: var(--g-text); }
+#V-MailMessageView .informationShort,
+#V-MailMessageView time { color: var(--g-text-3); font-size: 12px; }
+
+/* ------------------------------------------------------------------ */
+/* Buttons, dialogs, menus                                             */
+/* ------------------------------------------------------------------ */
+.btn-primary, .btn-success, .btn.btn-success, .btn.btn-primary {
+	background: var(--g-accent) !important;
+	color: var(--g-on-accent) !important;
+	border: 0 !important;
+	border-radius: 20px !important;
+	font-weight: 500;
+	text-shadow: none;
+}
+/* …but keep Compose as the pale-blue card */
+.b-folders .buttonCompose.btn-success { color: var(--g-compose-text) !important; }
+
+.dropdown-menu {
+	border: 0;
+	border-radius: 8px;
+	padding: 8px 0;
+	box-shadow: 0 2px 6px 2px rgba(60, 64, 67, .15), 0 1px 2px rgba(60, 64, 67, .3);
+}
+.dropdown-menu a { line-height: 32px; padding: 0 24px; }
+
+dialog, .modal, .b-compose {
+	border: 0;
+	border-radius: 16px;
+	box-shadow: 0 4px 8px 3px rgba(60, 64, 67, .15), 0 1px 3px rgba(60, 64, 67, .3);
+}
+
+/* Login card */
+#V-Login form, #V-Login .wrapper {
+	border-radius: 28px;
+	padding: 36px 40px;
+}
+
+/* Thin, unobtrusive scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--g-scrollbar) transparent; }

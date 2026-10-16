@@ -19,6 +19,7 @@ export class AdminLoginView extends AbstractViewLogin {
 			login: '',
 			password: '',
 			totp: '',
+			showPassword: false,
 
 			loginError: false,
 			passwordError: false,

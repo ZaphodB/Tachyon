@@ -6,9 +6,17 @@
  *     https://outlook.office.com/IMAP.AccessAsUser.All
  *     https://outlook.office.com/SMTP.Send
  *     openid offline_access email profile
+ * Supported account types has to include personal Microsoft accounts for an
+ * outlook.com, hotmail.com or live.com mailbox to be able to sign in at all.
  * https://learn.microsoft.com/en-us/entra/identity-platform/reply-url#query-parameter-support-in-redirect-uris
  * Query: redirect_uri=https://{DOMAIN}/?LoginO365
  * Path:  redirect_uri=https://{DOMAIN}/LoginO365
+ * The two are not interchangeable. Microsoft allows a query parameter in the
+ * redirect URI only for registrations that sign in work or school accounts, so
+ * a registration that admits personal accounts must use the path form, which is
+ * what the 'personal' setting leaves alone by defaulting to false. The name of
+ * that setting reads the wrong way round for this reason; it is kept because
+ * renaming it would silently reset the choice on every install that set it.
  *
  * If running behind nginx reverse proxy you might
  * need to add the following to your nginx config:

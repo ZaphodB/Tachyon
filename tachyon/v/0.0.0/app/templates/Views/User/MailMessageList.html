@@ -144,7 +144,7 @@
 		</div>
 
 		<!-- ko if: listGrouped -->
-		<div class="messageListPlace" data-bind="dragmessages: 1, i18nUpdate: groupedList, foreach: groupedList" draggable="true">
+		<div class="messageListPlace" data-bind="dragmessages: 1, i18nUpdate: groupedList, foreach: groupedList, attr: {'data-preview-lines': previewLines() || null}" draggable="true">
 			<div class="groupLabel" data-bind="text: label, click: $root.groupSearch" data-i18n="[title]GLOBAL/SEARCH"></div>
 			<!-- ko foreach: messages -->
 			<div class="messageListItem" data-bind="css: lineAsCss(), attr: {title: preview}">
@@ -154,6 +154,7 @@
 					<div class="flagParent"></div>
 					<div class="senderParent" data-bind="attr: {title: senderClearEmailsString}, text: senderEmailsString"></div>
 					<div class="subjectParent" data-bind="text: subject"></div>
+					<div class="previewParent" data-bind="visible: $root.previewLines() && preview, text: preview"></div>
 					<div class="threads-len" data-bind="visible: 1 < threadsLen(), text: threadsLenText(), attr: {'data-unseen': threadUnseenLen() || null}"></div>
 					<div class="attachmentParent">
 						<i data-bind="css: attachmentIconClass"></i>
@@ -166,7 +167,7 @@
 		</div>
 		<!-- /ko -->
 		<!-- ko ifnot: listGrouped -->
-		<div class="messageListPlace" data-bind="dragmessages: 1, foreach: messageList" draggable="true">
+		<div class="messageListPlace" data-bind="dragmessages: 1, foreach: messageList, attr: {'data-preview-lines': previewLines() || null}" draggable="true">
 			<div class="messageListItem" data-bind="css: lineAsCss(), attr:{title:preview}">
 				<div class="messageCheckbox">
 					<div class="checkboxMessage" data-bind="css: checked() ? 'icon-square-check' : 'icon-square'"></div>
@@ -174,6 +175,7 @@
 					<div class="flagParent"></div>
 					<div class="senderParent" data-bind="attr: {title: senderClearEmailsString}, text: senderEmailsString"></div>
 					<div class="subjectParent" data-bind="text: subject"></div>
+					<div class="previewParent" data-bind="visible: $root.previewLines() && preview, text: preview"></div>
 					<div class="threads-len" data-bind="visible: 1 < threadsLen(), text: threadsLenText(), attr: {'data-unseen': threadUnseenLen() || null}"></div>
 					<div class="attachmentParent">
 						<i data-bind="css: attachmentIconClass"></i>

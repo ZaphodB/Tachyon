@@ -601,6 +601,7 @@ class Actions
 						'MaxBlockquotesLevel' => 0,
 						'simpleAttachmentsList' => false,
 						'listGrouped' => $oConfig->Get('defaults', 'mail_list_grouped', false),
+						'messageListPreviewLines' => (int) $oConfig->Get('defaults', 'mail_list_preview_lines', 0),
 						'MessagesPerPage' => static::messagesPerPageDefault($oConfig),
 						/**
 						 * The ceiling the user may choose, sent so the input can
@@ -731,6 +732,7 @@ class Actions
 					$aResult['MaxBlockquotesLevel'] = (int)$oSettings->GetConf('MaxBlockquotesLevel', $aResult['MaxBlockquotesLevel']);
 					$aResult['simpleAttachmentsList'] = (bool)$oSettings->GetConf('simpleAttachmentsList', $aResult['simpleAttachmentsList']);
 					$aResult['listGrouped'] = (bool)$oSettings->GetConf('listGrouped', $aResult['listGrouped']);
+					$aResult['messageListPreviewLines'] = (int)$oSettings->GetConf('messageListPreviewLines', $aResult['messageListPreviewLines']);
 					$aResult['ContactsAutosave'] = (bool)$oSettings->GetConf('ContactsAutosave', $aResult['ContactsAutosave']);
 					$aResult['ContactsHideNoEmail'] = (bool)$oSettings->GetConf('ContactsHideNoEmail', $aResult['ContactsHideNoEmail']);
 					$aResult['calendarWeekNumbers'] = (bool)$oSettings->GetConf('calendarWeekNumbers', $aResult['calendarWeekNumbers']);

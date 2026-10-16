@@ -822,10 +822,18 @@ class ActionsAdmin extends Actions
 			$sPassword = $oConfig->Get('security', 'admin_password', '');
 			if (!$sPassword) {
 				$sPassword = \substr(\base64_encode(\random_bytes(16)), 0, 12);
-				Utils::saveFile($passfile, $sPassword . "\n");
-//				\chmod($passfile, 0600);
 				$oConfig->SetPassword(new \Tachyon\Util\SensitiveString($sPassword));
-				$oConfig->Save();
+				// Written only once the hash is safely in the configuration. The
+				// other way round, an unwritable application.ini left a file naming
+				// a password that had never been stored, and the only symptom was
+				// an admin login that quietly refused it (#133).
+				if ($oConfig->Save()) {
+					Utils::saveFile($passfile, $sPassword . "\n");
+//					\chmod($passfile, 0600);
+				} else {
+					\Tachyon\Util\Log::error('ADMIN',
+						'Generated an admin password but could not save it: is configs/application.ini writable?');
+				}
 			}
 		}
 	}

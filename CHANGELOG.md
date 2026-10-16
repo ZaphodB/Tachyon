@@ -1,7 +1,82 @@
+## 4.4.4 - 2026-10-16
+
+Take this one if you run 4.4.3: clicking a message could fill the search box and open nothing, for anyone whose folders are not named in plain ASCII.
+
+### Fixed
+- **Clicking a message filled the search box and showed nothing**, on 4.4.3 only. Message links name a folder by a URL-safe hash of its full name, because a full name may hold the hierarchy delimiter and anything else; the click path passed the full name instead, so a folder like `Lists/dev` produced extra path segments, no route matched it, and the tail was read as page and search. A folder named only `[a-z0-9._-]` hashes to itself, which is why `INBOX` behaved normally and this reached release: Dovecot's default `.` delimiter is in that class, Mailcow's `/` is not. Two older instances of the same mistake go with it, in the folder jumped to when a message is not in the current list, which is also how "select next after delete" moves, and in the notification for several new messages. Reported by @codiflow (#153)
+- The admin Contacts connection test reported plain success while contacts were switched off, so a green result said less than it appeared to and sent an administrator hunting for the fault elsewhere. It now has three outcomes: the database failing, the database answering while the feature is off, and both together. Found through #145
+
+### Added
+- **A line or two of the message body under the subject in the list**, off by default, with a setting under General for one line or two. The text comes from the IMAP server over `PREVIEW` (RFC 8970), which means no extra fetching and no HTML to strip, since the server is required to hand over plain text. Where a server cannot do it the setting says so rather than appearing to work, and where an administrator has turned it off the setting is hidden. Asked for by @DanClarke-io (#148)
+- **A show/passphrase toggle on both login screens.** Hidden by default, and it cannot submit the form or reveal anything before the page has finished loading. Asked for by @goddies (#131)
+- A **Material** theme, modelled on Material Design 3, in light and dark, with no web fonts fetched. Thanks to @DanClarke-io (#151)
+- `MailClient::MessageListByTuples()`, a supported way for a plugin to hand the core a page of `[folder, uid]` pairs and have it fetched and rendered, for search backed by an external index or a conversation ordering. The caller's order is kept across folders, repeats collapse, and pairs that could not be read are reported back. Asked for by @remmmi (#140)
+
+### Changed
+- The login-o365 documentation no longer offers the two redirect URI forms as equal alternatives. Microsoft permits a query parameter in a redirect URI only for work and school registrations, so a personal Outlook account must use the path form, which is the extension's default. Raised in #114
+- Translations updated for Polish and Russian
+
+---
+
+## 4.4.3 - 2026-10-15
+
+Worth taking if you run 4.4.2: opening Drafts could fail outright on PHP 8.4, the Debian package pulled in a second PHP, and logging out did not end the session.
+
+### Known issues
+- **An installation upgraded from before 4.4.0 can find Contacts, Calendar and additional accounts switched off**, with nothing in the interface to say why and only `AddressBook[ERROR]: CryptKeyError[111]` in the log. Each user has a `.cryptkey` sealed with their mail password, and on hosts with neither the sodium extension nor a usable OpenSSL cipher it was sealed with XXTEA. The forgery fix in 4.4.0 changed how that key is derived, because the salt stored inside such a token was the entire key, so one written before 4.4.0 cannot be read after it and cannot be recovered without reopening the hole. Delete that user's `storage/<domain>/<user>/.cryptkey` and log in again. A saved CardDAV, CalDAV or OAuth password then has to be entered once more; contacts and calendar entries are not encrypted with this key and are untouched. A mail password changed outside Tachyon has the same effect, since nothing is left to reseal the key with. See the [FAQ entry for 111](https://github.com/kimusan/Tachyon/wiki/FAQ). Reported by @janciorules (#145)
+
+### Security
+- Logging out left the server-side session alive. `Logout()` asked the browser to drop two cookies and nothing else: the `StorageType::SESSION` record that `getMainAccountFromToken()` actually checks stayed where it was, and the clear of the `SESSION_TOKEN` cookie had been commented out. Anyone holding a copy of the cookies from before the logout kept full mailbox access without the password, and since `FileStorage::Get()` touches the file on every read, a session being replayed never aged into the three hour sweep either. Reported by Fathi Ben Nasr, Convergent Cloud Computing (GHSA-gc87-g2gf-xj6q)
+- Backup restore ran without an admin session. `JsonAdminRestoreData` asked only whether the request had reached the admin panel, which is true for anyone able to load it, and the core rule requiring a login for `Admin*` actions did not cover it: a plugin action is dispatched as `PluginJsonAdminRestoreData`, so the test on the name starting with `Admin` never matched. The restore now demands an admin login, ignores the client's `Content-Type`, and will only write to the four directories and the one contacts database a backup legitimately contains, refusing the archive outright if it holds anything else. Reported by Fathi Ben Nasr, Convergent Cloud Computing (GHSA-5r45-3mqm-hcvg)
+- The IMAP sequence-set range pattern had no end anchor, so a value merely starting like a range was passed through whole and anything following it was read as more of the IMAP command. Nothing in the tree feeds it anything but server-derived integers, so this was a sharp edge rather than a hole, but it is the single place every FETCH, STORE and COPY sequence is built. Found while answering @remmmi (#140)
+
+### Fixed
+- **Opening Drafts could report "unknown error" and show nothing**, on PHP 8.4. A draft holds whatever was typed, so an address can have no domain at all, and `idn_to_utf8('')` throws a `ValueError` on 8.4 where older versions returned false. That happened while the message list was being serialised, so the whole response failed rather than one address. Reported by @daniu-de (#122)
+- **The Debian package pulled in a second PHP.** 4.4.2 added a versioned `php-fpm (>= 2:8.2~)` dependency, which no unversioned `Provides` can satisfy, so an existing working `php8.3-fpm` stopped counting and apt installed 8.4 beside it. The constraints are gone, as they were in 4.4.1; the 8.2 floor is still enforced at startup by `Integrity::phpVersion()`. Reported by @lvarnava (#134)
+- **The package is now called `tachyon-webmail`.** Debian already ships an unrelated `tachyon` in bookworm/main, a parallel ray tracer. Reported by @lvarnava (#135)
+- A fresh install could log that it had created the admin password and where to read it, and that password was then refused. It was written to `admin_password.txt` before the hash was stored, and `Config::Save()` returns a bool that nothing looked at, so wherever `application.ini` could not be written the file existed and held a password that had never been stored anywhere. Saved first now, and the file is written only if that worked. Reported by @jon4156 (#133)
+- The ics-viewer fix listed in 4.4.2 reached releases but not git checkouts: #127 widened the match in `message.js` and left `message.min.js`, the file the plugin actually loads, untouched. Release packaging runs terser over every plugin, which is how this turned up
+- In the Nextcloud file picker, the "Select folder" footer showed where it means nothing. It used the `hidden` binding, which any author rule carrying a `display` beats, and is now bound on `visible`. The button is also relabelled to the already-translated save string. Reported by @lvarnava (#117)
+
+### Added
+- **The Back button now closes an open message, and a message has its own link.** The route has always understood `#/mailbox/<folder>/m<uid>`, so a pasted link worked, but nothing ever wrote such a hash. Opening a message now pushes a history entry, arrow keys replace it rather than leaving one per message, and the preview pane filling itself at folder load writes nothing. Idea from @remmmi (#141)
+- Back out of the last of the client's own history entries and you are asked before you leave, rather than simply landing wherever you were before
+- The Nextcloud folder picker opens on the folder used last, with each level on the way down opened, so a nested folder is reached rather than only a top level one. Asked for by @lvarnava (#117)
+
+### Changed
+- The date format setting now previews with a date whose parts cannot be confused for one another. Thanks to Antonios Vamporakis (#137)
+- Translations updated for Polish and French, and plugin strings for Polish, French and Russian
+
+---
+
+## 4.4.2 - 2026-10-09
+
+A release worth taking promptly: 4.4.0 and 4.4.1 could make login impossible on a host without the sodium extension.
+
+### Fixed
+- **Upgrading to 4.4.0 could make login impossible on a host without the sodium extension**, with `Folders error: HTTP Token mismatch` after every attempt. `openssl_get_cipher_methods()` lists ciphers the provider will not actually use, and on OpenSSL 3 that includes `aes-256-cbc-hmac-sha1`, which is the shipped default. Encryption fell back to xxtea, correctly, but the hardening added in 4.4.0 then refused xxtea whenever `openssl_decrypt()` merely existed, so the server rejected the tokens it had just minted and no session could be established. The cipher is now tried rather than looked up, a working one is used when the configured one is not, and the refusal asks whether openssl can really be used. Affected installs are signed out once and move to proper encryption. Reported by @realsimix (#121)
+- Save in Nextcloud selected a folder, turned its spinner and wrote nothing. The plugin called `\OCP\Files::getStorage()`, which Nextcloud deprecated in 14 and has since removed, so the call threw and the save failed silently. The same call was in the "Save as .eml" path. Reported by @BlackIkeEagle (#116)
+- The Nextcloud file picker put a `select` button on every folder row and floated its checkboxes out of line. Folders now carry a radio confirmed from the footer, file names are clickable labels, and the rows line up. Reported by @lvarnava (#117)
+- A plugin updated to a build-numbered version kept reporting the version before it and offered the same update for ever. The release-time bump wrote the new version into `packages.json` but packaged an `index.php` still declaring the old one, and the admin panel reads the installed version from that constant. Reported by @ivnmad (#119)
+- Several callers passed HTTP headers as an associative array, which reached curl as bare values and were sent malformed and dropped: the integrity check, the breach lookup, which therefore travelled without its API key, and the CardDAV upload path, which answered `403 supported-address-data`. Thanks to @FathiBenNasr (#124)
+- Only the first `data-*` attribute was stripped from a composed message, because removing an attribute while iterating a live `DOMNamedNodeMap` ends the iteration. The rest went out in sent mail and saved drafts. Thanks to @FathiBenNasr (#126)
+- An empty contact list on either side of a CardDAV sync deleted everything on the other. An empty list is more often a fault than an intent, so deletions in that direction are now skipped and logged. Thanks to @FathiBenNasr (#125)
+- The ics-viewer panel never appeared on invitations from Evolution or Exchange, which put the calendar part inline and repeat it as `application/ics` rather than attaching `text/calendar`. Thanks to @FathiBenNasr (#127)
+
+### Security
+- The two-factor-auth plugin keeps its TOTP secret sealed rather than in clear, and backup codes only as hashes. A code from an already-accepted 30 second step is refused, and five failures in fifteen minutes lock that account's second factor for fifteen. Existing enrolments and printed backup codes carry over untouched. Thanks to @FathiBenNasr (#128)
+- The avatars plugin answered without a session and fetched a URL chosen by whoever asked, with the SSRF gate switched off, then cached the result under any address. Only instances with `bimi` or `favicon` enabled were affected; both default to off. Reported by Fathi Ben Nasr, Convergent Cloud Computing (GHSA-2r3w-3qmp-ppf2)
+
+### Changed
+- The Debian package gains a signed `tachyon_<version>-1_all.changes` file for importing into reprepro or aptly, declares `php-xml`, without which a clean Debian 13 install fails the integrity check, and requires PHP 8.2 or later. `php-openssl`, `php-exif` and `php-sodium` are dropped, none of them being real packages on Debian. Thanks to @dionysius (#129)
+- **The two-factor secret is now tied to `APP_SALT`.** Lose or regenerate `SALT.php`, by restoring a backup without it for instance, and every user loses their second factor with no way back but an administrator clearing their record. Before this the secret was stored in clear and survived such a change. Back up `SALT.php` with the data directory
+
+---
+
 ## 4.4.1 - 2026-10-07
 
 ### Fixed
-- Upgrading to 4.4.0 could leave you unable to log in, with `Folders error: HTTP Token mismatch` on every attempt. The first request after an upgrade empties the cache directory, and requests arriving together all got past the version check before any of them recorded the new version, so several walked and deleted the same tree at once. One removed a directory another had already listed, and that request died with a fatal part way through the page. The browser then held a page with no usable request token and every later call was rejected, which looked like a login fault rather than an install one. Reported by @realsimix (#121)
+- The first request after an upgrade could die part way through the page. It empties the cache directory, and requests arriving together all got past the version check before any of them recorded the new version, so several walked and deleted the same tree at once; one removed a directory another had already listed and that request ended in a fatal. A browser left holding a half-built page has no usable request token, so later calls come back as `Folders error: HTTP Token mismatch`, which reads as a login fault rather than an install one. Found in the log attached to #121, though it was not the whole of what @realsimix was seeing; the rest of that report is fixed in 4.4.2
 
 ---
 

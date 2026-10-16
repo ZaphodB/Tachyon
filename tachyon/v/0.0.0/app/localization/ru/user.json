@@ -80,8 +80,8 @@
 		"SUBFOLDERS_SUBTREE": "Все",
 		"SUBFOLDERS_SUBTREE_ONE": "Один уровень",
 		"REPLIED": "Отвеченные",
-		"KEYWORD": "Ключевое слово",
-		"ALSO_CC": "Также искать в \"Копии\""
+		"KEYWORD": "Метка",
+		"ALSO_CC": "Копия"
 	},
 	"FOLDER_LIST": {
 		"BUTTON_COMPOSE": "Написать",

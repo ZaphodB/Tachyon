@@ -121,11 +121,12 @@
 	<div data-bind="visible: contactsPdoType">
 		<div class="control-group">
 			<label></label>
-			<a class="btn" data-bind="command: testContactsCommand, css: { 'btn-success': testContactsSuccess, 'btn-danger': testContactsError }">
+			<a class="btn" data-bind="command: testContactsCommand, css: { 'btn-success': testContactsSuccess, 'btn-warning': testContactsDisabled, 'btn-danger': testContactsError }">
 				<i class="icon-info" data-bind="css: {'icon-spinner': testing()}"></i>
 				<span data-i18n="GLOBAL/TEST"></span>
 			</a>
 		</div>
 	</div>
 	<div class="alert span8" data-bind="text: testContactsErrorMessage, visible: '' !== testContactsErrorMessage()"></div>
+	<div class="alert span8" data-bind="visible: testContactsDisabled" data-i18n="TAB_CONTACTS/TEST_OK_BUT_DISABLED"></div>
 </form>

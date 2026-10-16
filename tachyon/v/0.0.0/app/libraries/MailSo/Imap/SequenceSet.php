@@ -34,8 +34,14 @@ class SequenceSet /*extends \SplFixedArray*/ implements \Countable
 	public function __construct($mItems, bool $uid = true)
 	{
 		if (\is_array($mItems)) {
+			// Anchored at both ends. Without the $ anything merely starting like a
+			// range was kept whole, so "1:2 EVIL" reached the wire verbatim and
+			// anything after it was read as more of the IMAP command. Nothing in
+			// the tree feeds this anything but server-derived integers today, so
+			// it was a sharp edge rather than a hole, but this is the one place
+			// every FETCH, STORE and COPY sequence passes through.
 			$this->data = \array_values($uid ? \array_filter(\array_map(function($id){
-				return \preg_match('/^([0-9]+|\\*):([0-9]+|\\*)/', $id, $dummy) ? $id : \intval($id);
+				return \preg_match('/^([0-9]+|\\*):([0-9]+|\\*)$/D', (string) $id) ? $id : \intval($id);
 			}, $mItems)) : $mItems);
 		} else if (\is_scalar($mItems)) {
 			$this->data[] = $mItems;

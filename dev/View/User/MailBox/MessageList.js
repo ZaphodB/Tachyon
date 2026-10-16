@@ -76,20 +76,42 @@ const
 	pad2 = v => 10 > v ? '0' + v : '' + v,
 	Ymd = dt => dt.getFullYear() + pad2(1 + dt.getMonth()) + pad2(dt.getDate()),
 
-	setMessage = msg => {
+	/**
+	 * Every way of showing a message arrives here: a click, the keyboard through
+	 * the selector, a middle click, and the swipe in the message view. So the
+	 * address bar is written here and nowhere else.
+	 *
+	 * This was written before and left commented out because the hash change
+	 * made the core load the message a second time. onRoute() now recognises the
+	 * message it is already showing and does nothing, so the write is free.
+	 *
+	 * How the address bar is written, from the caller:
+	 *   false  push, for an open the reader asked for, so Back returns to the list
+	 *   true   replace, for arrow keys stepping through the list: the URL has to
+	 *          stay accurate without leaving an entry per message
+	 *   null   leave it alone, for the preview pane filling itself at folder
+	 *          load. Writing there would overwrite the list's own history entry
+	 *          and Back would have nothing to return to.
+	 */
+	setMessage = (msg, replace) => {
 		populateMessageBody(msg);
-/* This will replace url hash, and then load message
- * It's working properly yet
-//		let hash = msg.href;
-		let hash = mailBox(
-			msg.folder,
-			MessagelistUserStore.page(),
-			MessagelistUserStore.listSearch(),
-			MessagelistUserStore.threadUid(),
-			msg.uid
-		);
-		MessageUserStore.message() ? hasher.replaceHash(hash) : hasher.setHash(hash);
-*/
+		// A message carries its folder's full name, and mailBox() wants the hash:
+		// fullNameHash exists because a full name may hold anything, including the
+		// delimiter. Writing the name here put "a/b/c" into the URL, where the
+		// route read the tail as page and search, so the search box filled itself
+		// and the message never opened (#153). It went unnoticed because a folder
+		// named only [a-z0-9._-], INBOX for one, hashes to itself.
+		const folderHash = null !== replace && getFolderFromCacheList(msg.folder)?.fullNameHash;
+		if (folderHash) {
+			const hash = mailBox(
+				folderHash,
+				MessagelistUserStore.page(),
+				MessagelistUserStore.listSearch(),
+				MessagelistUserStore.threadUid(),
+				msg.uid
+			);
+			replace ? hasher.replaceHash(hash) : hasher.setHash(hash);
+		}
 	};
 
 
@@ -273,14 +295,33 @@ export class MailMessageList extends AbstractViewRight {
 			'.messageListItem .messageCheckbox'
 		);
 
+		// Lines of body snippet to show under the subject, 0 for none. The store
+		// observable itself, so changing it in settings reflows the list at once.
+		this.previewLines = SettingsUserStore.messageListPreviewLines;
+
 		this.selector.on('ItemSelect', message => {
 			if (message) {
+				// A selection the list made itself is not a place the reader asked
+				// to go, so it must not push: the one at folder load happens before
+				// any click at all, and Chrome marks a gesture-less entry skippable
+				// and walks straight past it on Back.
+				const auto = this.selector.autoSelected === message,
+					hashWrite = auto ? (this.selector.autoSelectedKeyboard || null) : false;
+				this.selector.autoSelected = null;
 //				setMessage(message.clone());
-				setMessage(message);
+				setMessage(message, hashWrite);
 			} else {
 				MessageUserStore.message(null);
 			}
 		});
+
+		// Back out of a message and the list has to forget which row was selected,
+		// or clicking that same row again changes nothing in the selector and the
+		// message never reopens. Nothing is checked at this point, so the
+		// selector's own ItemSelect(null) does not fire and this cannot loop.
+		MessageUserStore.message.subscribe(message =>
+			message || this.selector.selectedItem(null)
+		);
 
 		this.selector.on('MiddleClick', message => populateMessageBody(message, true));
 
@@ -338,19 +379,21 @@ export class MailMessageList extends AbstractViewRight {
 			);
 
 			// Only go to the folder when the message is not already in front of
-			// us. mailBox(sFolder) carries no page and no search, so navigating
+			// us. The folder link carries no page and no search, so navigating
 			// threw away a filtered list, and this event is also how deleting a
 			// message asks for the next one to be selected: deleting inside a
 			// search dropped you back into the unfiltered folder every time.
 			if (message) {
 				this.selector.selectMessageItem(message);
 			} else {
-				hasher.setHash(mailBox(sFolder));
+				// The hash, not the full name, for the reason given at setMessage()
+				hasher.setHash(mailBox(getFolderFromCacheList(sFolder)?.fullNameHash));
 				if (sFolder && iUid) {
 					let message = new MessageModel;
 					message.folder = sFolder;
 					message.uid = iUid;
-					setMessage(message);
+					// The folder hash just above pushed this navigation already.
+					setMessage(message, true);
 				} else {
 					MessageUserStore.message(null);
 				}

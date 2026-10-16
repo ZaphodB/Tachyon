@@ -45,15 +45,15 @@ const localeFor = () => {
  * before anything has opened a date field and fetched that bundle.
  */
 export const dateFormatOptions = () => {
-	const sample = new Date(2026, 8, 8),
+	const sample = new Date(2026, 9, 28),
 		asLanguage = sample.toLocaleDateString(document.documentElement.lang || undefined);
 	return [
 		{ id: '', name: asLanguage },
-		{ id: 'dd/MM/yyyy', name: '08/09/2026' },
-		{ id: 'MM/dd/yyyy', name: '09/08/2026' },
-		{ id: 'dd.MM.yyyy', name: '08.09.2026' },
-		{ id: 'dd-MM-yyyy', name: '08-09-2026' },
-		{ id: 'yyyy-MM-dd', name: '2026-09-08' }
+		{ id: 'dd/MM/yyyy', name: '28/09/2026' },
+		{ id: 'MM/dd/yyyy', name: '09/28/2026' },
+		{ id: 'dd.MM.yyyy', name: '28.09.2026' },
+		{ id: 'dd-MM-yyyy', name: '28-09-2026' },
+		{ id: 'yyyy-MM-dd', name: '2026-09-28' }
 	];
 };
 
