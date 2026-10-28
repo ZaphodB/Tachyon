@@ -533,6 +533,14 @@ The template holds a `<tr>` and is bound to the ComposePopupView.
 Example in
 * ./send-save-in/savein.js
 
+## rl.addMessageViewMenuItem(template)​
+Renders a plugin template in the message view's menu, the one behind the
+hamburger beside Reply. The template holds an `<li>` and is bound to the
+message view model, so `message()` is the open message and a `click:` binding
+names a method the plugin added on `rl-view-model.create`.
+Example in
+* ./deepl-translate/js/DeeplTranslate.js
+
 ## rl.addSettingsViewModel(SettingsViewModelClass, template, labelName, route)​
 Examples in
 * ./change-password/js/ChangePasswordUserSettings.js
