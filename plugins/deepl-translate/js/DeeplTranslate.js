@@ -1,7 +1,9 @@
 (rl => {
 
 	const
-		cfg = () => rl.settings.get('deepl-translate') || {},
+		// FilterAppDataPluginSection() puts the section under Plugins, keyed by the
+		// plugin folder name, which is what rl.pluginSettingsGet reads from too.
+		cfg = () => rl.settings.get('Plugins')?.['deepl-translate'] || {},
 		i18n = (key, replace) => rl.i18n('DEEPL/' + key, replace),
 
 		// DeepL answers 413 over 128 KiB of request body. A body is split into
@@ -238,8 +240,14 @@
 
 		onShow() {
 			request('DeeplLanguages')
-				.then(result => Array.isArray(result) && this.languages(result))
-				.catch(() => {});
+				.then(result => {
+					// An empty list with nothing said is indistinguishable from a
+					// DeepL that refused, so say which one it was
+					Array.isArray(result)
+						? this.languages(result)
+						: this.error(errorText(result) || i18n('ERROR_FAILED'));
+				})
+				.catch(() => this.error(i18n('ERROR_FAILED')));
 			request('DeeplUsage')
 				.then(result => {
 					const text = errorText(result);

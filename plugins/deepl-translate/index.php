@@ -15,7 +15,7 @@ class DeeplTranslatePlugin extends \Tachyon\Plugins\AbstractPlugin
 		NAME     = 'DeepL Translate',
 		AUTHOR   = 'Tachyon',
 		URL      = 'https://github.com/kimusan/Tachyon',
-		VERSION  = '0.1',
+		VERSION  = '0.2',
 		RELEASE  = '2026-10-28',
 		REQUIRED = '4.4.8',
 		CATEGORY = 'General',
@@ -155,23 +155,32 @@ class DeeplTranslatePlugin extends \Tachyon\Plugins\AbstractPlugin
 			}
 		}
 
-		$aResult = $this->call('GET', '/v3/languages');
+		$aResult = $this->call('GET', '/v3/languages?resource=translate_text');
+		if (!\is_array($aResult)) {
+			// An error code, which the settings tab turns into one sentence
+			return $this->jsonResponse(__FUNCTION__, $aResult);
+		}
+
+		/**
+		 * A flat array of language objects. The code is 'lang' in BCP 47 casing
+		 * and 'usable_as_target' says whether a reader may pick it, which is the
+		 * only list this plugin offers. Uppercased because that is the casing
+		 * target_lang is stored and validated in, and DeepL takes it either way.
+		 */
 		$aLanguages = array();
-		// The target list is what a reader picks from. v3 answers per product, so
-		// take whatever shape arrives and keep the entries that name a language.
-		\array_walk_recursive($aResult ?: array(), function($mValue, $mKey) use (&$aLanguages) {
-			if ('language' === $mKey && \is_string($mValue)) {
-				$aLanguages[\strtoupper($mValue)] = \strtoupper($mValue);
+		foreach ($aResult as $aLanguage) {
+			if (\is_array($aLanguage) && !empty($aLanguage['usable_as_target']) && !empty($aLanguage['lang'])) {
+				$aLanguages[] = \strtoupper((string) $aLanguage['lang']);
 			}
-		});
-		$aLanguages = \array_values($aLanguages);
+		}
+		$aLanguages = \array_values(\array_unique($aLanguages));
 		\sort($aLanguages);
 
 		if ($aLanguages) {
 			$oCacher->Set($sKey, \json_encode(array('t' => \time(), 'languages' => $aLanguages)));
 		}
 
-		return $this->jsonResponse(__FUNCTION__, $aLanguages ?: $aResult);
+		return $this->jsonResponse(__FUNCTION__, $aLanguages);
 	}
 
 	/**
