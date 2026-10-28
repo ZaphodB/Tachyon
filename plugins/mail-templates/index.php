@@ -16,7 +16,7 @@ class MailTemplatesPlugin extends \Tachyon\Plugins\AbstractPlugin
 		NAME     = 'Mail Templates',
 		AUTHOR   = 'Tachyon',
 		URL      = 'https://github.com/kimusan/Tachyon',
-		VERSION  = '0.2',
+		VERSION  = '0.3',
 		RELEASE  = '2026-10-28',
 		REQUIRED = '4.4.8',
 		CATEGORY = 'General',

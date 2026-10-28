@@ -7,13 +7,13 @@
 	<div class="alert alert-error" data-bind="visible: error, text: error"></div>
 
 	<table class="table" data-bind="visible: templates().length">
-		<tbody data-bind="foreach: templates">
+		<tbody data-bind="foreach: templates, i18nUpdate: templates">
 			<tr>
-				<td data-bind="text: subject"></td>
+				<td><a href="#" data-bind="text: subject, click: $parent.insert.bind($parent)"></a></td>
 				<td style="width:1%;white-space:nowrap">
-					<a class="btn" data-bind="click: $parent.insert.bind($parent), disable: $parent.busy"
+					<a class="btn" data-icon="check" data-bind="click: $parent.insert.bind($parent), disable: $parent.busy"
 						data-i18n="MAIL_TEMPLATES/INSERT"></a>
-					<a class="btn btn-danger" data-bind="click: $parent.remove.bind($parent), disable: $parent.busy"
+					<a class="btn btn-danger" data-icon="trash-2" data-bind="click: $parent.remove.bind($parent), disable: $parent.busy"
 						data-i18n="MAIL_TEMPLATES/REMOVE"></a>
 				</td>
 			</tr>
