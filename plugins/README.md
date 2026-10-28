@@ -538,6 +538,11 @@ Renders a plugin template in the message view's menu, the one behind the
 hamburger beside Reply. The template holds an `<li>` and is bound to the
 message view model, so `message()` is the open message and a `click:` binding
 names a method the plugin added on `rl-view-model.create`.
+
+## rl.addMessageViewToolbarButton(template)​
+Renders a plugin template in the message view's top toolbar, after the
+previous/next buttons. The template holds a `<div class="btn-group">` and is
+bound to the same view model as the menu item above.
 Example in
 * ./deepl-translate/js/DeeplTranslate.js
 

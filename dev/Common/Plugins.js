@@ -56,7 +56,8 @@ rl.pluginPopupView = AbstractViewPopup;
 
 const COMPOSE_HEADER_ROWS = [],
 	COMPOSE_BUTTONS = [],
-	MESSAGE_VIEW_MENU_ITEMS = [];
+	MESSAGE_VIEW_MENU_ITEMS = [],
+	MESSAGE_VIEW_TOOLBAR_BUTTONS = [];
 
 /**
  * Renders a plugin template as a row of the compose header table.
@@ -80,6 +81,16 @@ rl.addComposeButton = template => COMPOSE_BUTTONS.push(template);
  */
 rl.addMessageViewMenuItem = template => MESSAGE_VIEW_MENU_ITEMS.push(template);
 
+/**
+ * Renders a plugin template in the message view's top toolbar, after the
+ * previous/next buttons.
+ * The template holds a <div class="btn-group"> and is bound to the
+ * MessageViewUserView, so the message itself is $data.message().
+ * @param {string} template
+ */
+rl.addMessageViewToolbarButton = template => MESSAGE_VIEW_TOOLBAR_BUTTONS.push(template);
+
 export const composeHeaderRows = COMPOSE_HEADER_ROWS,
 	composeButtons = COMPOSE_BUTTONS,
-	messageViewMenuItems = MESSAGE_VIEW_MENU_ITEMS;
+	messageViewMenuItems = MESSAGE_VIEW_MENU_ITEMS,
+	messageViewToolbarButtons = MESSAGE_VIEW_TOOLBAR_BUTTONS;

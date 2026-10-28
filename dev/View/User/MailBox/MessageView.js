@@ -58,7 +58,7 @@ import { horizontalSwipe } from 'Common/Swipe';
 
 import { MessageModel } from 'Model/Message';
 
-import { messageViewMenuItems } from 'Common/Plugins';
+import { messageViewMenuItems, messageViewToolbarButtons } from 'Common/Plugins';
 import { showScreenPopup } from 'Knoin/Knoin';
 import { OpenPgpImportPopupView } from 'View/Popup/OpenPgpImport';
 import { GnuPGUserStore } from 'Stores/User/GnuPG';
@@ -175,6 +175,8 @@ export class MailMessageView extends AbstractViewRight {
 		this.message = currentMessage;
 		// Where a plugin puts its own menu item, see rl.addMessageViewMenuItem()
 		this.pluginMenuItems = messageViewMenuItems;
+		// And its own toolbar button, see rl.addMessageViewToolbarButton()
+		this.pluginToolbarButtons = messageViewToolbarButtons;
 		this.messageLoadingThrottle = MessageUserStore.loading;
 		this.messageError = MessageUserStore.error;
 
