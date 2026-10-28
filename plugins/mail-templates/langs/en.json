@@ -1,0 +1,14 @@
+{
+	"MAIL_TEMPLATES": {
+		"TITLE": "Templates",
+		"NAME": "Name",
+		"INSERT": "Insert",
+		"REMOVE": "Remove",
+		"SAVE_CURRENT": "Save this message as a template",
+		"NONE_YET": "No templates yet. Write a message, give it a name and save it.",
+		"ERROR_NO_NAME": "Give the template a name first.",
+		"ERROR_SAVE": "The template could not be saved.",
+		"ERROR_READ": "The template could not be read.",
+		"ERROR_DELETE": "The template could not be deleted."
+	}
+}
