@@ -15,7 +15,7 @@ class DeeplTranslatePlugin extends \Tachyon\Plugins\AbstractPlugin
 		NAME     = 'DeepL Translate',
 		AUTHOR   = 'Tachyon',
 		URL      = 'https://github.com/kimusan/Tachyon',
-		VERSION  = '0.2',
+		VERSION  = '0.3',
 		RELEASE  = '2026-10-28',
 		REQUIRED = '4.4.8',
 		CATEGORY = 'General',
@@ -34,7 +34,8 @@ class DeeplTranslatePlugin extends \Tachyon\Plugins\AbstractPlugin
 		$this->UseLangs(true);
 
 		$this->addJs('js/DeeplTranslate.js');
-		$this->addTemplate('templates/MessageViewDeeplTranslate.html');
+		$this->addTemplate('templates/MessageViewToolbarDeeplTranslate.html');
+		$this->addTemplate('templates/PopupsDeeplTranslate.html');
 		$this->addTemplate('templates/ComposeDeeplTranslate.html');
 		$this->addTemplate('templates/STabDeeplTranslate.html');
 
@@ -146,7 +147,9 @@ class DeeplTranslatePlugin extends \Tachyon\Plugins\AbstractPlugin
 	public function DoDeeplLanguages()
 	{
 		$oCacher = $this->Manager()->Actions()->Cacher();
-		$sKey = 'Plugin/DeeplTranslate/languages';
+		// The key names the shape, so an install holding the plain list of codes
+		// this used to cache is not served it as the objects below
+		$sKey = 'Plugin/DeeplTranslate/languages/named';
 		$sCached = $oCacher->Get($sKey);
 		if ($sCached) {
 			$aCached = \json_decode($sCached, true);
@@ -170,11 +173,21 @@ class DeeplTranslatePlugin extends \Tachyon\Plugins\AbstractPlugin
 		$aLanguages = array();
 		foreach ($aResult as $aLanguage) {
 			if (\is_array($aLanguage) && !empty($aLanguage['usable_as_target']) && !empty($aLanguage['lang'])) {
-				$aLanguages[] = \strtoupper((string) $aLanguage['lang']);
+				$sCode = \strtoupper((string) $aLanguage['lang']);
+				// The name DeepL gives travels with the code, because a list of
+				// codes is not a list a reader can choose from. Keyed by code so a
+				// language listed twice is offered once.
+				$aLanguages[$sCode] = array(
+					'code' => $sCode,
+					'name' => \trim((string) ($aLanguage['name'] ?? '')) ?: $sCode
+				);
 			}
 		}
-		$aLanguages = \array_values(\array_unique($aLanguages));
-		\sort($aLanguages);
+		$aLanguages = \array_values($aLanguages);
+		// By name, because that is what the lists show
+		\usort($aLanguages, function ($a, $b) {
+			return \strcmp($a['name'], $b['name']);
+		});
 
 		if ($aLanguages) {
 			$oCacher->Set($sKey, \json_encode(array('t' => \time(), 'languages' => $aLanguages)));
@@ -299,7 +312,10 @@ class DeeplTranslatePlugin extends \Tachyon\Plugins\AbstractPlugin
 			case 456:
 				return 'quota';
 			default:
-				\Tachyon\Util\Log::warning('DeepL', "{$sPath} answered {$oResponse->status}");
+				// With the body, because the one sentence the interface shows cannot
+				// say which of DeepL's rules the request broke
+				\Tachyon\Util\Log::warning('DeepL', "{$sPath} answered {$oResponse->status}: "
+					. \substr(\preg_replace('/\s+/', ' ', (string) $oResponse->body), 0, 200));
 				return 'failed';
 		}
 	}

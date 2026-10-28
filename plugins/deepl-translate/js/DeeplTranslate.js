@@ -6,9 +6,16 @@
 		cfg = () => rl.settings.get('Plugins')?.['deepl-translate'] || {},
 		i18n = (key, replace) => rl.i18n('DEEPL/' + key, replace),
 
-		// DeepL answers 413 over 128 KiB of request body. A body is split into
-		// entries below this, which leaves room for the JSON around them.
-		BUDGET = 100000,
+		/**
+		 * What one request to DeepL may carry: 50 entries and 128 KiB of body.
+		 * Both are refused with a 400, not a 413, so a body split only by size
+		 * failed on any message with more than 50 pieces. The character budget is
+		 * well under the 128 KiB because it is counted in characters while the
+		 * limit is on bytes, and JSON escaping plus any non-ASCII letter puts the
+		 * two further apart the longer the text is.
+		 */
+		MAX_TEXTS = 50,
+		BUDGET = 60000,
 
 		request = (action, params) => new Promise((resolve, reject) =>
 			rl.pluginRemoteRequest(
@@ -112,7 +119,7 @@
 				if (undefined !== segment.raw) {
 					continue;
 				}
-				if (size && size + segment.text.length > BUDGET) {
+				if (batch.length >= MAX_TEXTS || (size && size + segment.text.length > BUDGET)) {
 					await flush();
 				}
 				batch.push(segment.text);
@@ -127,43 +134,69 @@
 			};
 		};
 
+	/**
+	 * One list for the whole page: the language picker, the composer and the
+	 * settings tab all offer the same languages, and the answer is cached on the
+	 * server for a day anyway. A failed load is not kept, or the lists would stay
+	 * empty until the page is reloaded.
+	 */
+	const languages = ko.observableArray();
+	let languagesPromise = null;
+
+	const loadLanguages = () => {
+		languagesPromise = languagesPromise || request('DeeplLanguages')
+			.then(result => {
+				if (!Array.isArray(result)) {
+					throw new Error(errorText(result) || i18n('ERROR_FAILED'));
+				}
+				languages(result);
+				return result;
+			})
+			.catch(e => {
+				languagesPromise = null;
+				throw e;
+			});
+		return languagesPromise;
+	};
+
 	let composeView = null;
 
 	/**
-	 * The message view's menu item. The body source is translated and put back
-	 * through html()/plain(), so viewBody() runs it through cleanHtml() exactly
-	 * as it does the original. Nothing is written into the DOM directly.
+	 * The open message. The body source is translated and put back through
+	 * html()/plain(), so viewBody() runs it through cleanHtml() exactly as it does
+	 * the original. Nothing is written into the DOM directly.
 	 */
 	const
 		originals = new Map,
 		msgKey = msg => msg.folder + '/' + msg.uid,
 
-		translateMessage = async view => {
-			const msg = view.message();
-			if (!msg) {
-				return;
-			}
-
-			const key = msgKey(msg),
-				kept = originals.get(key);
-
+		restoreMessage = view => {
+			const msg = view.message(),
+				kept = msg && originals.get(msgKey(msg));
 			if (kept) {
-				originals.delete(key);
+				originals.delete(msgKey(msg));
 				msg.subject(kept.subject);
 				kept.html && msg.html(kept.html);
 				kept.plain && msg.plain(kept.plain);
 				kept.isHtml ? msg.viewHtml() : msg.viewPlain();
-				view.deeplBusy(false);
-				view.deeplTranslated(false);
-				return;
+			}
+			view.deeplError('');
+			view.deeplTranslated(false);
+		},
+
+		// @returns {Promise<boolean>} false when it failed, with deeplError() set
+		translateMessage = async (view, target) => {
+			const msg = view.message();
+			if (!msg) {
+				return false;
 			}
 
+			const key = msgKey(msg);
 			view.deeplBusy(true);
 			view.deeplError('');
 			try {
 				const isHtml = msg.isHtml(),
 					source = isHtml ? msg.html() : msg.plain(),
-					target = cfg().target_lang || '',
 					subject = msg.subject();
 
 				originals.set(key, {
@@ -182,13 +215,52 @@
 				isHtml ? msg.html(body.text) : msg.plain(body.text);
 				isHtml ? msg.viewHtml() : msg.viewPlain();
 				view.deeplTranslated(true);
+				return true;
 			} catch (e) {
 				originals.delete(key);
+				// A refused request rejects with an error number, which has no
+				// message of its own
 				view.deeplError(e.message || i18n('ERROR_FAILED'));
+				return false;
 			} finally {
 				view.deeplBusy(false);
 			}
 		};
+
+	/**
+	 * Pick a language, then watch it work. Kept open while it runs so the message
+	 * underneath is not half translated behind a dialog, and so a failure has
+	 * somewhere to be read.
+	 */
+	class DeeplTranslatePopupView extends rl.pluginPopupView {
+		constructor() {
+			super('DeeplTranslate');
+
+			this.languages = languages;
+			this.loading = ko.observable(false);
+			this.busy = ko.observable(false);
+			this.error = ko.observable('');
+		}
+
+		beforeShow(view) {
+			this.view = view;
+			this.busy(false);
+			this.error('');
+			this.loading(!languages().length);
+			loadLanguages()
+				.catch(e => this.error(e.message || i18n('ERROR_FAILED')))
+				.finally(() => this.loading(false));
+		}
+
+		pick(language) {
+			this.error('');
+			this.busy(true);
+			translateMessage(this.view, language.code).then(ok => {
+				this.busy(false);
+				ok ? this.close() : this.error(this.view.deeplError());
+			});
+		}
+	}
 
 	/**
 	 * The composer's header row. Replaces what is in the editor, and keeps it so
@@ -230,7 +302,7 @@
 		constructor() {
 			this.target = ko.observable(cfg().target_lang || '');
 			this.authKey = ko.observable('');
-			this.languages = ko.observableArray([]);
+			this.languages = languages;
 			this.allowUserKey = ko.observable(!!cfg().allow_user_key);
 			this.hasUserKey = ko.observable(!!cfg().has_user_key);
 			this.usage = ko.observable('');
@@ -239,15 +311,9 @@
 		}
 
 		onShow() {
-			request('DeeplLanguages')
-				.then(result => {
-					// An empty list with nothing said is indistinguishable from a
-					// DeepL that refused, so say which one it was
-					Array.isArray(result)
-						? this.languages(result)
-						: this.error(errorText(result) || i18n('ERROR_FAILED'));
-				})
-				.catch(() => this.error(i18n('ERROR_FAILED')));
+			// An empty list with nothing said is indistinguishable from a DeepL
+			// that refused, so say which one it was
+			loadLanguages().catch(e => this.error(e.message || i18n('ERROR_FAILED')));
 			request('DeeplUsage')
 				.then(result => {
 					const text = errorText(result);
@@ -286,7 +352,7 @@
 		}
 	}
 
-	rl.addMessageViewMenuItem('MessageViewDeeplTranslate');
+	rl.addMessageViewToolbarButton('MessageViewToolbarDeeplTranslate');
 	rl.addComposeHeaderRow('ComposeDeeplTranslate');
 	rl.addSettingsViewModel(DeeplSettingsTab, 'STabDeeplTranslate', 'DeepL', 'deepl');
 
@@ -298,9 +364,11 @@
 			view.deeplError = ko.observable('');
 			view.deeplTranslated = ko.observable(false);
 			view.deeplConfigured = !!cfg().configured;
-			view.deeplTranslate = () => translateMessage(view);
+			view.deeplTranslate = () => view.deeplTranslated()
+				? restoreMessage(view)
+				: DeeplTranslatePopupView.showModal([view]);
 			// A different message in the same view is not the one that was
-			// translated, so the menu item goes back to offering a translation.
+			// translated, so the button goes back to offering a translation.
 			view.message.subscribe(() => {
 				view.deeplError('');
 				view.deeplTranslated(view.message() ? originals.has(msgKey(view.message())) : false);
@@ -314,11 +382,11 @@
 			view.deeplTranslated = ko.observable(false);
 			view.deeplConfigured = !!cfg().configured;
 			view.deeplTarget = ko.observable(cfg().target_lang || '');
-			view.deeplLanguages = ko.observableArray([]);
+			view.deeplLanguages = languages;
 			view.deeplTranslate = () => translateCompose(view);
-			request('DeeplLanguages')
-				.then(result => Array.isArray(result) && view.deeplLanguages(result))
-				.catch(() => {});
+			// The row still works without the list, on the default language, so a
+			// failure here is left for the settings tab to report
+			loadLanguages().catch(() => {});
 		}
 	});
 
