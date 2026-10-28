@@ -518,6 +518,21 @@ Converts HTML to text
 ## rl.Utils.plainToHtml(plain)
 Converts text to HTML
 
+## rl.addComposeButton(template)​
+Renders a plugin template beside the attach button of the compose window.
+The template is bound to the ComposePopupView, so a `click:` binding names a
+method the plugin added to the view model on `rl-view-model.create`.
+Register the template with `addTemplate()` and the name here is its filename
+without `.html`.
+Example in
+* ./nextcloud/js/composer.js
+
+## rl.addComposeHeaderRow(template)​
+Renders a plugin template as a row of the compose header table, under Subject.
+The template holds a `<tr>` and is bound to the ComposePopupView.
+Example in
+* ./send-save-in/savein.js
+
 ## rl.addSettingsViewModel(SettingsViewModelClass, template, labelName, route)​
 Examples in
 * ./change-password/js/ChangePasswordUserSettings.js

@@ -53,12 +53,7 @@
 		}
 	});
 
-	let template = document.getElementById('PopupsCompose');
-	const uploadBtn = template.content.querySelector('#composeUploadButton');
-	if (uploadBtn) {
-		uploadBtn.after(Element.fromHTML(`<a class="btn icon-cloud" data-bind="click: nextcloudAttach"
-			data-i18n="[title]NEXTCLOUD/ATTACH_FILES"></a>`));
-	}
+	rl.addComposeButton('ComposeNextcloudAttach');
 
 /**
 	https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-share-api.html

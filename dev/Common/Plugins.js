@@ -53,3 +53,23 @@ rl.pluginSettingsGet = (pluginSection, name) =>
 	SettingsGet('Plugins')?.[pluginSection]?.[name];
 
 rl.pluginPopupView = AbstractViewPopup;
+
+const COMPOSE_HEADER_ROWS = [],
+	COMPOSE_BUTTONS = [];
+
+/**
+ * Renders a plugin template as a row of the compose header table.
+ * The template holds a <tr> and is bound to the ComposePopupView.
+ * @param {string} template
+ */
+rl.addComposeHeaderRow = template => COMPOSE_HEADER_ROWS.push(template);
+
+/**
+ * Renders a plugin template beside the attach button of the compose window.
+ * The template is bound to the ComposePopupView.
+ * @param {string} template
+ */
+rl.addComposeButton = template => COMPOSE_BUTTONS.push(template);
+
+export const composeHeaderRows = COMPOSE_HEADER_ROWS,
+	composeButtons = COMPOSE_BUTTONS;

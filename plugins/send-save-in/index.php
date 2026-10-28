@@ -8,9 +8,9 @@ class SendSaveInPlugin extends \Tachyon\Plugins\AbstractPlugin
 		NAME     = 'Send Save In',
 		AUTHOR   = 'Tachyon',
 		URL      = 'https://github.com/kimusan/Tachyon',
-		VERSION  = '0.1',
-		RELEASE  = '2024-10-08',
-		REQUIRED = '2.38.1',
+		VERSION  = '0.2',
+		RELEASE  = '2026-10-28',
+		REQUIRED = '4.4.8',
 		CATEGORY = 'General',
 		LICENSE  = 'MIT',
 		DESCRIPTION = 'When composing a message, select the save folder';
@@ -19,5 +19,6 @@ class SendSaveInPlugin extends \Tachyon\Plugins\AbstractPlugin
 	{
 //		$this->UseLangs(true); // start use langs folder
 		$this->addJs('savein.js');
+		$this->addTemplate('templates/ComposeSendSaveIn.html');
 	}
 }
