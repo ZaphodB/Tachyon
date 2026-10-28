@@ -1,0 +1,10 @@
+<li class="dividerbar" role="presentation" data-bind="visible: deeplConfigured && message()">
+	<a href="#" tabindex="-1" data-bind="click: deeplTranslate">
+		<i data-bind="css: { 'icon-globe': !deeplBusy(), 'icon-spinner': deeplBusy() }"></i>
+		<span data-bind="visible: !deeplTranslated()" data-i18n="DEEPL/TRANSLATE"></span>
+		<span data-bind="visible: deeplTranslated" data-i18n="DEEPL/SHOW_ORIGINAL"></span>
+	</a>
+</li>
+<li role="presentation" data-bind="visible: deeplError">
+	<a href="#" tabindex="-1" class="iconcolor-red" data-bind="text: deeplError"></a>
+</li>
