@@ -664,6 +664,22 @@ export const
 			}
 		});
 
+		/**
+		 * A table with no width of its own shrink wraps to its content. The widths
+		 * above are percentages by now, which resolve against that shrink wrapped
+		 * width rather than against the pane, so a fixed width mail inside the bare
+		 * wrapper table most senders use collapsed into a column one word across.
+		 * Only a wrapper that holds one of those percentages is given a width, so
+		 * an ordinary small table in the body of a message still sizes to its own
+		 * content.
+		 */
+		tmpl.content.querySelectorAll('table').forEach(table => {
+			if (!table.style.width
+			 && [...table.querySelectorAll('table,img')].some(el => el.style.width.includes('%'))) {
+				table.style.width = '100%';
+			}
+		});
+
 		isMsg && blockquoteSwitcher();
 
 //		return tmpl.content.firstChild;
