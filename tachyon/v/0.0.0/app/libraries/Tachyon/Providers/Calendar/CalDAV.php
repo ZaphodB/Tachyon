@@ -73,7 +73,7 @@ trait CalDAV
 				}
 				$aMatch = array();
 				if (\preg_match('/\/([^\/?]+)$/', \rtrim(\trim($sHref), '/'), $aMatch) && !empty($aMatch[1])) {
-					$aResult[\urldecode(\urldecode($aMatch[1]))] = $sData;
+					$aResult[$aMatch[1]] = $sData;
 				}
 			}
 		} catch (\Throwable $oException) {
@@ -118,7 +118,17 @@ trait CalDAV
 					if (\preg_match('/\/([^\/?]+)$/', $sKey, $aMatch) && !empty($aMatch[1])
 					 && !static::hasDAVCollection($aItem))
 					{
-						$sIcsFileName = \urldecode(\urldecode($aMatch[1]));
+						/**
+						 * The name as the server wrote it in the href, still
+						 * percent encoded, because it is pasted onto the collection
+						 * path for every later GET, PUT and DELETE. Decoding it
+						 * here put a literal space in those URLs and cURL refused
+						 * them with "Malformed input to a URL function" (#174).
+						 * Decoding and encoding again is not the repair either: a
+						 * name may legally hold a '+', which urldecode turns into
+						 * a space that rawurlencode cannot give back.
+						 */
+						$sIcsFileName = $aMatch[1];
 
 						/**
 						 * Keyed on the filename, not on the filename with .ics

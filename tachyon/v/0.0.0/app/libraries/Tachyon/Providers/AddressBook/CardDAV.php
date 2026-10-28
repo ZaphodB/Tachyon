@@ -52,8 +52,17 @@ trait CardDAV
 						if (\preg_match('/\/([^\/?]+)$/', $sKey, $aMatch) && !empty($aMatch[1])
 						 && !static::hasDAVCollection($aItem))
 						{
-							$sVcfFileName = \urldecode(\urldecode($aMatch[1]));
-							$sKeyID = \preg_replace('/\.vcf$/i', '', $sVcfFileName);
+							/**
+							 * The name as the server wrote it in the href, still
+							 * percent encoded, because it is pasted onto the
+							 * collection path for every later GET and DELETE.
+							 * Decoding it here put a literal space in those URLs
+							 * and cURL refused them with "Malformed input to a URL
+							 * function" (#174). The key is the decoded stem, since
+							 * that is the UID the local store is keyed on.
+							 */
+							$sVcfFileName = $aMatch[1];
+							$sKeyID = \rawurldecode(\preg_replace('/\.vcf$/i', '', $sVcfFileName));
 
 							$mResult[$sKeyID] = array(
 								'deleted' => false,
