@@ -1,0 +1,20 @@
+<header>
+	<a href="#" class="close" data-bind="click: close">×</a>
+	<h3 data-i18n="DEEPL/TRANSLATE_TO"></h3>
+</header>
+<div class="modal-body">
+
+	<div class="alert alert-error" data-bind="visible: error, text: error"></div>
+
+	<div data-bind="visible: loading"><i class="icon-spinner"></i></div>
+
+	<div data-bind="visible: busy">
+		<i class="icon-spinner"></i> <span data-i18n="DEEPL/TRANSLATING"></span>
+	</div>
+
+	<div style="display:flex;flex-wrap:wrap;gap:4px"
+		data-bind="visible: !busy() && !loading(), foreach: languages">
+		<a class="btn" href="#" data-bind="text: name, click: $parent.pick.bind($parent)"></a>
+	</div>
+
+</div>

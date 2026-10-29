@@ -45,7 +45,8 @@
 		"HELP": "Помощь",
 		"TEXT": "Текст",
 		"ATTACHMENTS": "Файлы",
-		"CALENDAR": "Календарь"
+		"CALENDAR": "Календарь",
+		"SHOW_PASSWORD": "Показать пароль"
 	},
 	"LOGIN": {
 		"LABEL_LOGIN": "Логин",
@@ -58,7 +59,7 @@
 	"SEARCH": {
 		"TITLE_ADV": "Расширенный поиск писем",
 		"TEXT": "Текст",
-		"HAS_ATTACHMENT": "Имеют вложение(я)",
+		"HAS_ATTACHMENT": "Имеют вложения",
 		"FLAGGED": "Со звездочкой",
 		"UNSEEN": "Непрочитанные",
 		"DATE": "Дата",
@@ -369,7 +370,7 @@
 		"POPUP_VIEW_TITLE": "Просмотр OpenPGP ключа",
 		"POPUP_VIEW_BUTTON": "Выбрать",
 		"POPUP_GENERATE_TITLE": "Создать пару ключей OpenPGP",
-		"POPUP_GENERATE_BUTTON": "Создать",
+		"POPUP_GENERATE_BUTTON": "Сгенерировать",
 		"LABEL_KEY_TYPE": "Тип",
 		"SIGNED_MESSAGE": "OpenPGP подписанное сообщение",
 		"ENCRYPTED_MESSAGE": "OpenPGP шифрованное сообщение",
@@ -572,7 +573,12 @@
 		"MAILTO": "Установить в качестве обработчика ссылок 'mailto:' по умолчанию",
 		"HTML_TO_MD": "Преобразование HTML в Markdown вместо обычного текста",
 		"DATE_FORMAT": "Формат даты",
-		"DATE_FORMAT_HINT": "Первая запись соответствует языку вашего интерфейса."
+		"DATE_FORMAT_HINT": "Первая запись соответствует языку вашего интерфейса.",
+		"PREVIEW_LINES": "Предварительный просмотр сообщения",
+		"PREVIEW_LINES_NONE": "Без предпросмотра",
+		"PREVIEW_LINES_ONE": "Одна строка",
+		"PREVIEW_LINES_TWO": "Две строки",
+		"PREVIEW_LINES_UNSUPPORTED": "Ваш почтовый сервер не может создавать предварительные просмотры, поэтому это ни на что не влияет."
 	},
 	"SETTINGS_CONTACTS": {
 		"LABEL_CONTACTS_AUTOSAVE": "Автоматически добавлять получателей писем в адресную книгу",
@@ -676,7 +682,9 @@
 		"LABEL_OPEN_IDENTITIES_DROPDOWN": "Выбрать отправителя",
 		"LABEL_SAVE_MESSAGE": "Сохранить сообщение",
 		"LABEL_SEND_MESSAGE": "Отправить сообщение",
-		"LABEL_CLOSE_COMPOSE": "Закрыть сообщение"
+		"LABEL_CLOSE_COMPOSE": "Закрыть сообщение",
+		"LABEL_TOGGLE_TAG": "Переключить метку: Важное, Работа, Личное, Сделать, Позже",
+		"LABEL_REMOVE_TAGS": "Удалить все эти пять меток"
 	},
 	"NOTIFICATIONS": {
 		"RequestError": "Запрос не выполнен",

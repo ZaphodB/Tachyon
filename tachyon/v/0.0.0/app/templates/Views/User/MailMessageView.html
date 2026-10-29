@@ -18,6 +18,9 @@
 		<a class="btn btn-thin buttonUp icon-chevron-left" data-bind="command: goUpCommand"></a>
 		<a class="btn btn-thin buttonDown icon-chevron-right" data-bind="command: goDownCommand"></a>
 	</div>
+	<!-- ko foreach: pluginToolbarButtons -->
+	<!-- ko template: { name: $data, data: $parent } --><!-- /ko -->
+	<!-- /ko -->
 </div>
 <div class="messageView">
 	<div class="b-message-view-backdrop" data-bind="visible: moveAction">
@@ -128,6 +131,9 @@
 								<a target="_blank" href="#" tabindex="-1" data-bind="attr: { href: downloadLink() }" data-icon="inbox" data-i18n="MESSAGE/MENU_DOWNLOAD_ORIGINAL"></a>
 							</li>
 						</div>
+						<!-- ko foreach: pluginMenuItems -->
+						<!-- ko template: { name: $data, data: $parent } --><!-- /ko -->
+						<!-- /ko -->
 					</menu>
 				</div>
 			</div>

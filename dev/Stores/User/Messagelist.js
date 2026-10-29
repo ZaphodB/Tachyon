@@ -311,7 +311,10 @@ MessagelistUserStore.reload = (bDropPagePosition = false, bDropCurrentFolderCach
 							folder.unreadEmails(folderInfo.unreadEmails);
 						}
 
-						let flags = folderInfo.permanentFlags || [];
+						// IMAP keywords are case insensitive and a server reports the case it
+						// first stored, so $Label1 and $label1 are one keyword and listing both
+						// offered every tag twice. Lowercase is what the message flags use.
+						let flags = [...new Set((folderInfo.permanentFlags || []).map(flag => flag.toLowerCase()))];
 						if (flags.includes('\\*')) {
 							/** Add Thunderbird labels */
 							let i = 6;

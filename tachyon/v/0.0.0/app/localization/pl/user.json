@@ -85,7 +85,7 @@
 		"ALSO_CC": "Szukaj również w DW"
 	},
 	"FOLDER_LIST": {
-		"BUTTON_COMPOSE": "Utwórz",
+		"BUTTON_COMPOSE": "Stwórz",
 		"BUTTON_NEW_MESSAGE": "Nowa wiadomość",
 		"INBOX_NAME": "Odebrane",
 		"SENT_NAME": "Wysłane",
@@ -276,7 +276,7 @@
 		"ADR_LOCALITY": "Miasto",
 		"ADR_REGION": "Województwo/Region",
 		"ADR_COUNTRY": "Kraj",
-		"ADR_POBOX": "Skrzynka pocztowa",
+		"ADR_POBOX": "Skrytka pocztowa",
 		"BUTTON_DELETE_LOCAL": "Usuń kontakty lokalne",
 		"SYNCED_CONTACT": "Zsynchronizowano ze zdalną książką adresową",
 		"CONFIRM_DELETE_LOCAL": "Usunąć wszystkie kontakty utworzone lokalnie? Kontakty zsynchronizowane ze zdalnej książki adresowej są oznaczone i zostaną zachowane."
@@ -314,7 +314,7 @@
 		"DESC_WANT_DELETE_MESSAGES": "Na pewno chcesz usunąć wiadomość(-ci)?"
 	},
 	"POPUPS_LANGUAGES": {
-		"TITLE_LANGUAGES": "Wybierz język"
+		"TITLE_LANGUAGES": "Wybierz swój język"
 	},
 	"POPUPS_ADD_ACCOUNT": {
 		"TITLE_ADD_ACCOUNT": "Czy dodać konto",
@@ -450,7 +450,7 @@
 		"NOTIFICATION_ARCHIVE": "Nie został wybrany folder \"Archiwum\", zostanie użyty systemowy folder archiwizacji wiadomości."
 	},
 	"TITLES": {
-		"MAILBOX": "Skrzynka odbiorcza",
+		"MAILBOX": "Odebrane",
 		"SETTINGS": "Ustawienia"
 	},
 	"UPLOAD": {
@@ -649,7 +649,7 @@
 	},
 	"SHORTCUTS_HELP": {
 		"LEGEND_SHORTCUTS_HELP": "Pomoc dotycząca skrótów klawiaturowych",
-		"TAB_MAILBOX": "Skrzynka odbiorcza",
+		"TAB_MAILBOX": "Skrzynka pocztowa",
 		"TAB_MESSAGE_LIST": "Lista wiadomości",
 		"TAB_MESSAGE_VIEW": "Widok wiadomości",
 		"TAB_COMPOSE": "Tworzenie wiadomości",
@@ -682,7 +682,9 @@
 		"LABEL_OPEN_IDENTITIES_DROPDOWN": "Otwórz menu wyboru tożsamości",
 		"LABEL_SAVE_MESSAGE": "Zapisz wiadomość",
 		"LABEL_SEND_MESSAGE": "Wyślij wiadomość",
-		"LABEL_CLOSE_COMPOSE": "Zamknij okno tworzenia wiadomości"
+		"LABEL_CLOSE_COMPOSE": "Zamknij okno tworzenia wiadomości",
+		"LABEL_TOGGLE_TAG": "Przełącz tag: Ważne, Praca, Osobiste, Do zrobienia, Później",
+		"LABEL_REMOVE_TAGS": "Usuń wszystkie pięć tych znaczników"
 	},
 	"NOTIFICATIONS": {
 		"RequestError": "Zapytanie zakończone niepowodzeniem",

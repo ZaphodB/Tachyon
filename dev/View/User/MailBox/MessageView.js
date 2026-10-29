@@ -58,6 +58,7 @@ import { horizontalSwipe } from 'Common/Swipe';
 
 import { MessageModel } from 'Model/Message';
 
+import { messageViewMenuItems, messageViewToolbarButtons } from 'Common/Plugins';
 import { showScreenPopup } from 'Knoin/Knoin';
 import { OpenPgpImportPopupView } from 'View/Popup/OpenPgpImport';
 import { GnuPGUserStore } from 'Stores/User/GnuPG';
@@ -172,6 +173,10 @@ export class MailMessageView extends AbstractViewRight {
 		this.isSpamFolder = MessagelistUserStore.isSpamFolder;
 
 		this.message = currentMessage;
+		// Where a plugin puts its own menu item, see rl.addMessageViewMenuItem()
+		this.pluginMenuItems = messageViewMenuItems;
+		// And its own toolbar button, see rl.addMessageViewToolbarButton()
+		this.pluginToolbarButtons = messageViewToolbarButtons;
 		this.messageLoadingThrottle = MessageUserStore.loading;
 		this.messageError = MessageUserStore.error;
 
@@ -829,8 +834,11 @@ export class MailMessageView extends AbstractViewRight {
 	newTag() {
 		let message = currentMessage();
 		if (message) {
-			let keyword = prompt(i18n('MESSAGE/NEW_TAG'), '')?.replace(/[\s\\]+/g, '');
-			if (keyword.length && isAllowedKeyword(keyword)) {
+			// A tag typed here is the user's own, and the $ namespace belongs to the
+			// keywords clients agree on, so the prefix is dropped rather than left to
+			// be refused by isAllowedKeyword() without a word
+			let keyword = prompt(i18n('MESSAGE/NEW_TAG'), '')?.replace(/[\s\\]+/g, '').replace(/^\$+/, '');
+			if (keyword?.length && isAllowedKeyword(keyword)) {
 				message.toggleTag(keyword);
 				FolderUserStore.currentFolder().permanentFlags.push(keyword);
 			}

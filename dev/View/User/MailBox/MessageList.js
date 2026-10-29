@@ -58,14 +58,36 @@ const
 	listAction = (...args) => MessagelistUserStore.setAction(...args),
 
 	// A search can span folders, so an action is issued once per folder
-	listActionPerFolder = (iSetAction, messages) => {
+	perFolder = (messages, fn) => {
 		const byFolder = new Map;
 		(messages || MessagelistUserStore.listCheckedOrSelected()).forEach(message => {
 			byFolder.has(message.folder) || byFolder.set(message.folder, []);
 			byFolder.get(message.folder).push(message);
 		});
-		byFolder.forEach((list, folder) => listAction(folder, iSetAction, list));
+		byFolder.forEach(fn);
 	},
+
+	listActionPerFolder = (iSetAction, messages) =>
+		perFolder(messages, (list, folder) => listAction(folder, iSetAction, list)),
+
+	// The keywords Thunderbird's 1 to 5 keys set, named and coloured to match
+	labelKeywords = [1, 2, 3, 4, 5].map(i => '$label' + i),
+
+	setKeyword = (messages, keyword, bSet) =>
+		perFolder(messages, (list, folder) =>
+			Remote.request('MessageSetKeyword', iError => {
+				iError || list.forEach(message =>
+					bSet
+						? message.flags.includes(keyword) || message.flags.push(keyword)
+						: message.flags.remove(keyword)
+				);
+			}, {
+				folder: folder,
+				uids: list.map(message => message.uid).join(','),
+				keyword: keyword,
+				setAction: bSet ? 1 : 0
+			})
+		),
 
 	moveMessagesToFolderType = (toFolderType, bDelete) => {
 		MessagelistUserStore.listCheckedOrSelectedByFolder().forEach((uids, folder) =>
@@ -800,6 +822,24 @@ export class MailMessageList extends AbstractViewRight {
 					checked.every(message => message.isFlagged()) ? MessageSetAction.UnsetFlag : MessageSetAction.SetFlag,
 					checked
 				);
+			}
+			return false;
+		});
+
+		// Thunderbird labels: 1 to 5 toggle one on the selection, 0 takes them all off
+		registerShortcut('0,1,2,3,4,5', '', [ScopeMessageList, ScopeMessageView], event => {
+			const messages = MessagelistUserStore.listCheckedOrSelected();
+			if (messages.length) {
+				if ('0' === event.key) {
+					labelKeywords.forEach(keyword =>
+						messages.some(message => message.flags.includes(keyword))
+							&& setKeyword(messages, keyword, false)
+					);
+				} else {
+					const keyword = '$label' + event.key;
+					setKeyword(messages, keyword,
+						!messages.every(message => message.flags.includes(keyword)));
+				}
 			}
 			return false;
 		});

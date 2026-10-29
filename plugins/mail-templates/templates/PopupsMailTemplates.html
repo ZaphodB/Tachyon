@@ -1,0 +1,36 @@
+<header>
+	<a href="#" class="close" data-bind="click: close">×</a>
+	<h3 data-i18n="MAIL_TEMPLATES/TITLE"></h3>
+</header>
+<div class="modal-body">
+
+	<div class="alert alert-error" data-bind="visible: error, text: error"></div>
+
+	<table class="table" data-bind="visible: templates().length">
+		<tbody data-bind="foreach: templates, i18nUpdate: templates">
+			<tr>
+				<td><a href="#" data-bind="text: subject, click: $parent.insert.bind($parent)"></a></td>
+				<td style="width:1%;white-space:nowrap">
+					<a class="btn" data-icon="check" data-bind="click: $parent.insert.bind($parent), disable: $parent.busy"
+						data-i18n="MAIL_TEMPLATES/INSERT"></a>
+					<a class="btn btn-danger" data-icon="trash-2" data-bind="click: $parent.remove.bind($parent), disable: $parent.busy"
+						data-i18n="MAIL_TEMPLATES/REMOVE"></a>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div data-bind="visible: !loading() && !templates().length" data-i18n="MAIL_TEMPLATES/NONE_YET"></div>
+	<div data-bind="visible: loading" data-i18n="GLOBAL/LOADING"></div>
+
+	<form id="mail-templates-form" class="form-inline" action="#/" autocomplete="off" spellcheck="false"
+		data-bind="submit: save">
+		<label for="mail-template-name" data-i18n="MAIL_TEMPLATES/NAME"></label>
+		<input type="text" id="mail-template-name" data-bind="textInput: name">
+	</form>
+
+</div>
+<footer>
+	<button form="mail-templates-form" class="btn" data-icon="check" data-bind="disable: busy"
+		data-i18n="MAIL_TEMPLATES/SAVE_CURRENT"></button>
+</footer>

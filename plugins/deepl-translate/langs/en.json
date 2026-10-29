@@ -1,0 +1,24 @@
+{
+	"DEEPL": {
+		"TITLE": "DeepL translation",
+		"TRANSLATE": "Translate",
+		"TRANSLATE_TO": "Translate to",
+		"TRANSLATING": "Translating",
+		"SHOW_ORIGINAL": "Show the original",
+		"UNDO": "Undo translation",
+		"YOUR_KEY": "Your own DeepL key",
+		"YOUR_KEY_PLACEHOLDER": "Leave empty to keep the current one",
+		"YOUR_KEY_DESC": "Used instead of the key the administrator set, for every account listed under your login. A free key ends in :fx",
+		"FORGET_KEY": "Forget my key",
+		"USAGE": "%COUNT% of %LIMIT% characters used this period",
+		"PRIVACY": "A message is sent to DeepL only when you ask for a translation, never on its own.",
+		"ERROR_NO_KEY": "No DeepL key is set.",
+		"ERROR_BAD_KEY": "DeepL rejected the key.",
+		"ERROR_TOO_LARGE": "This message is too large for DeepL to translate in one piece.",
+		"ERROR_TOO_MANY": "Too many requests to DeepL, try again shortly.",
+		"ERROR_QUOTA": "The DeepL character quota for this period is used up.",
+		"ERROR_UNREACHABLE": "DeepL could not be reached.",
+		"ERROR_BAD_ANSWER": "DeepL answered something unexpected.",
+		"ERROR_FAILED": "The translation failed."
+	}
+}

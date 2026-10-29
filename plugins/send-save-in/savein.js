@@ -37,6 +37,8 @@
 
 	let oldSentFolderFn;
 
+	rl.addComposeHeaderRow('ComposeSendSaveIn');
+
 	addEventListener('rl-view-model.create', e => {
 		if (templateId === e.detail.viewModelTemplateID) {
 			const view = e.detail; // ComposePopupView
@@ -48,16 +50,6 @@
 
 			oldSentFolderFn = view.sentFolder.bind(view);
 			view.sentFolder = () => view.sentFolderValue() || oldSentFolderFn();
-
-			document.getElementById(templateId).content.querySelector('.b-header tbody').append(Element.fromHTML(`
-			<tr>
-				<td>Store in</td>
-				<td>
-					<select class="span3" data-bind="options: sentFolderSelectList, value: sentFolderValue,
-						optionsText: 'name', optionsValue: 'id', optionsAfterRender: defaultOptionsAfterRender"></select>
-					(When send, store a copy of the message in the selected folder)
-				</td>
-			</tr>`));
 
 			view.currentIdentity.subscribe(()=>{
 				view.sentFolderValue(oldSentFolderFn());

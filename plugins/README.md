@@ -518,6 +518,34 @@ Converts HTML to text
 ## rl.Utils.plainToHtml(plain)
 Converts text to HTML
 
+## rl.addComposeButton(template)​
+Renders a plugin template beside the attach button of the compose window.
+The template is bound to the ComposePopupView, so a `click:` binding names a
+method the plugin added to the view model on `rl-view-model.create`.
+Register the template with `addTemplate()` and the name here is its filename
+without `.html`.
+Example in
+* ./nextcloud/js/composer.js
+
+## rl.addComposeHeaderRow(template)​
+Renders a plugin template as a row of the compose header table, under Subject.
+The template holds a `<tr>` and is bound to the ComposePopupView.
+Example in
+* ./send-save-in/savein.js
+
+## rl.addMessageViewMenuItem(template)​
+Renders a plugin template in the message view's menu, the one behind the
+hamburger beside Reply. The template holds an `<li>` and is bound to the
+message view model, so `message()` is the open message and a `click:` binding
+names a method the plugin added on `rl-view-model.create`.
+
+## rl.addMessageViewToolbarButton(template)​
+Renders a plugin template in the message view's top toolbar, after the
+previous/next buttons. The template holds a `<div class="btn-group">` and is
+bound to the same view model as the menu item above.
+Example in
+* ./deepl-translate/js/DeeplTranslate.js
+
 ## rl.addSettingsViewModel(SettingsViewModelClass, template, labelName, route)​
 Examples in
 * ./change-password/js/ChangePasswordUserSettings.js

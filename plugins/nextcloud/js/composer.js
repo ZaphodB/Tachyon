@@ -36,19 +36,24 @@
 					if (urls.length) {
 						// TODO: other editors and text/plain
 						// https://github.com/the-djmaze/snappymail/issues/981
-						view.oEditor.editor.squire.insertHTML(urls.join("<br>"));
+						const squire = view.oEditor.editor.squire,
+							range = squire.getSelection(),
+							// Files picked in a later visit to the dialog landed at the
+							// end of the line the previous ones were on (#117)
+							atLineStart = !range.startOffset
+								&& !range.startContainer.textContent.trim().length;
+						squire.insertHTML((atLineStart ? '' : '<br>') + urls.join("<br>"));
+						// The links go into the message body, so show it: picking files left
+						// the Attachments tab in front with no sign anything had happened
+						// (#117)
+						view.bodyArea();
 					}
 				});
 			};
 		}
 	});
 
-	let template = document.getElementById('PopupsCompose');
-	const uploadBtn = template.content.querySelector('#composeUploadButton');
-	if (uploadBtn) {
-		uploadBtn.after(Element.fromHTML(`<a class="btn icon-cloud" data-bind="click: nextcloudAttach"
-			data-i18n="[title]NEXTCLOUD/ATTACH_FILES"></a>`));
-	}
+	rl.addComposeButton('ComposeNextcloudAttach');
 
 /**
 	https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-share-api.html

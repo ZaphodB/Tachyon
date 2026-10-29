@@ -1,0 +1,13 @@
+<tr data-bind="visible: deeplConfigured">
+	<td data-i18n="DEEPL/TRANSLATE_TO"></td>
+	<td>
+		<select class="span2" data-bind="options: deeplLanguages, optionsText: 'name', optionsValue: 'code',
+			value: deeplTarget, enable: !deeplBusy() && !deeplTranslated()"></select>
+		<a class="btn" data-bind="click: deeplTranslate, css: { disabled: deeplBusy }">
+			<i data-bind="css: { 'icon-globe': !deeplBusy(), 'icon-spinner': deeplBusy() }"></i>
+			<span data-bind="visible: !deeplTranslated()" data-i18n="DEEPL/TRANSLATE"></span>
+			<span data-bind="visible: deeplTranslated" data-i18n="DEEPL/UNDO"></span>
+		</a>
+		<span class="iconcolor-red" data-bind="visible: deeplError, text: deeplError"></span>
+	</td>
+</tr>

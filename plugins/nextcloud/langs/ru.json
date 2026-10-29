@@ -9,6 +9,9 @@
         "SELECT_CALENDAR": "Выбрать календарь",
         "FILE_ATTACH": "Прикрепить",
         "FILE_INTERNAL": "Внутреняя ссылка",
-        "FILE_PUBLIC": "Публичная ссылка"
+        "FILE_PUBLIC": "Публичная ссылка",
+        "CREATE_SUBFOLDER": "Создать новую подпапку",
+        "FOLDER_NAME": "Имя папки",
+        "FOLDER_CREATE": "Создать"
     }
 }

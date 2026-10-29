@@ -539,7 +539,12 @@
     let l = brs.length;
     while (l--) {
       const br = brs[l], parent = br.parentElement;
-      if (!br.nextSibling && 1 === parent.children.length && parent.textContent.trim().length) {
+      // parent is null for a BR that is a fragment's own last child, which
+      // :last-child does match. Reading children off it threw, and the callers
+      // are setHTML and insertHTML: pasting or inserting anything ending in a
+      // BR silently inserted nothing, and loading a body ending in one threw
+      // out of setHTML. Tachyon issue #117.
+      if (parent && !br.nextSibling && 1 === parent.children.length && parent.textContent.trim().length) {
         br.remove();
       }
     }
@@ -1033,12 +1038,25 @@
       let offset = range.endOffset;
       cleanupBRs(block);
       if (isInline(container)) {
-        const nodeAfterSplit = split(
+        let nodeAfterSplit = split(
           container,
           offset,
           getPreviousBlock(container, root) || root,
           root
         );
+        /**
+         * Splitting at the end of a link leaves the clone of it with nothing in
+         * it, and this path never cleaned that up: inserting anything beside a
+         * link left an empty one behind, which then travelled in the sent
+         * message. splitBlock() meets the same case and swaps the empty link
+         * for an empty text node, which keeps the position this needs.
+         */
+        if (nodeAfterSplit && "A" === nodeAfterSplit.nodeName
+         && (!nodeAfterSplit.textContent || ZWS === nodeAfterSplit.textContent)) {
+          const text = document.createTextNode("");
+          replaceWith(nodeAfterSplit, text);
+          nodeAfterSplit = text;
+        }
         container = nodeAfterSplit.parentNode;
         offset = Array.from(container.childNodes).indexOf(
           nodeAfterSplit
@@ -3112,10 +3130,43 @@
         this._docWasChanged();
         return this;
       }
+      if (!block && !lineBreakOnly) {
+        /**
+         * No block to split, so this used to insert a bare BR. That BR is then
+         * the last node of its line, which no browser renders as a line break,
+         * and Firefox drops it on the next keystroke: the line the user just
+         * made disappeared and their typing continued on the line above.
+         * Reachable by typing at the very top of a reply, where the caret sits
+         * at the root itself and Firefox leaves the text there unwrapped.
+         * Wrap the loose inline run into a block and split that instead. The
+         * bookmark is needed because fixContainer() detaches the nodes, and
+         * removing a node collapses any live range inside it. Tachyon #165.
+         */
+        this._saveRangeToBookmark(range);
+        fixContainer(root);
+        this._getRangeAndRemoveBookmark(range);
+        block = getStartBlockOfRange(range, root);
+      }
       if (!block || lineBreakOnly || /^T[HD]$/.test(block.nodeName)) {
         moveRangeBoundaryOutOf(range, "A", root);
-        insertNodeInRange(range, createElement("BR"));
+        const br = createElement("BR");
+        insertNodeInRange(range, br);
         range.collapse(false);
+        /**
+         * With nothing after it in the line this BR renders as no break at all,
+         * and Firefox drops it on the next keystroke, so shift+enter at the end
+         * of a paragraph did nothing. A second BR gives the new line something
+         * to be, the way fixCursor() does for an empty block, and the caret
+         * goes between the two. A trailing BR is not rendered by anything, so
+         * the filler costs the sent message no blank line. isLineBreak() is
+         * Squire's own test for whether a BR has anything after it in its line.
+         */
+        if (!isLineBreak(br)) {
+          const filler = createElement("BR");
+          br.after(filler);
+          range.setStartBefore(filler);
+          range.collapse(true);
+        }
         this.setSelection(range);
         this._updatePath(range, true);
         return this;

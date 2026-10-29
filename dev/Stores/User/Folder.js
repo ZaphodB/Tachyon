@@ -10,41 +10,45 @@ import { Settings, SettingsCapa } from 'Common/Globals';
 
 export const
 
-ignoredKeywords = [
-	// rfc5788
-	'$forwarded',
-	'$mdnsent',
-	'$submitpending',
-	'$submitted',
-	// rfc9051
-	'$junk',
-	'$notjunk',
-	'$phishing',
-	// Mailo
-	'sent',
+/**
+ * RFC 5788 reserves the $ prefix for registered keywords, which is also where
+ * clients park their private flags: $has_cal, $HighImportance, $labelimportant
+ * and whatever the next client invents. Listing those one by one never keeps up,
+ * so a keyword in that namespace is offered only when we have a name and a
+ * colour for it. $todo has both, but $label4 already shows as "To Do", so it
+ * stays hidden as it was before.
+ */
+shownKeywords = [
+	// Thunderbird
+	'$label1',
+	'$label2',
+	'$label3',
+	'$label4',
+	'$label5',
 	// KMail
-	'$encrypted',
-	'$error',
-	'$ignored',
-	'$invitation',
-	'$queued',
-	'$sent',
-	'$signed',
-	'$todo',
-	'$watched',
-	// GMail
-	'$notphishing',
-	'junk',
-	'nonjunk',
-	// KMail & GMail
-	'$attachment',
-	'$replied',
-	// Others
-	'$readreceipt',
-	'$notdelivered'
+	'$important'
 ],
 
-isAllowedKeyword = value => '\\' != value[0] && !ignoredKeywords.includes(value.toLowerCase()),
+/**
+ * Keywords that are not the user's own and do not carry the $ prefix, so the
+ * rule above cannot catch them.
+ */
+ignoredKeywords = [
+	// Mailo
+	'sent',
+	// GMail
+	'junk',
+	'nonjunk',
+	// Others
+	'loadremoteimages',
+	'redirected'
+],
+
+isAllowedKeyword = value => {
+	const lower = value.toLowerCase();
+	return '\\' != value[0]
+		&& ('$' == value[0] ? shownKeywords.includes(lower) : !ignoredKeywords.includes(lower));
+},
 
 FolderUserStore = new class {
 	constructor() {

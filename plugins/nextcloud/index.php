@@ -5,11 +5,11 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 	const
 		NAME = 'Nextcloud',
 		// Keep upstream metadata if you prefer; this is not functional.
-		VERSION = '2.41.0',
-		RELEASE  = '2026-09-29',
+		VERSION = '2.41.1',
+		RELEASE  = '2026-10-28',
 		CATEGORY = 'Integrations',
 		DESCRIPTION = 'Integrate with Nextcloud v20+',
-		REQUIRED = '2.38.0';
+		REQUIRED = '4.4.8';
 
 	public function Init() : void
 	{
@@ -36,6 +36,7 @@ class NextcloudPlugin extends \Tachyon\Plugins\AbstractPlugin
 
 			$this->addTemplate('templates/PopupsNextcloudFiles.html');
 			$this->addTemplate('templates/PopupsNextcloudCalendars.html');
+			$this->addTemplate('templates/ComposeNextcloudAttach.html');
 
 			// $this->addHook('login.credentials.step-2', 'loginCredentials2');
 			// $this->addHook('login.credentials', 'loginCredentials');

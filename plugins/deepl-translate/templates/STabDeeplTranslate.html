@@ -1,0 +1,44 @@
+<div>
+	<div class="form-horizontal">
+
+		<div class="legend" data-i18n="DEEPL/TITLE"></div>
+
+		<div class="control-group">
+			<label class="control-label" data-i18n="DEEPL/TRANSLATE_TO"></label>
+			<div class="controls">
+				<select data-bind="options: languages, optionsText: 'name', optionsValue: 'code', value: target"></select>
+			</div>
+		</div>
+
+		<div class="control-group" data-bind="visible: allowUserKey">
+			<label class="control-label" data-i18n="DEEPL/YOUR_KEY"></label>
+			<div class="controls">
+				<input type="password" autocomplete="off" data-bind="textInput: authKey"
+					data-i18n="[placeholder]DEEPL/YOUR_KEY_PLACEHOLDER">
+				<span class="help-block" data-i18n="DEEPL/YOUR_KEY_DESC"></span>
+				<button class="btn" data-bind="visible: hasUserKey, click: clearKey" data-i18n="DEEPL/FORGET_KEY"></button>
+			</div>
+		</div>
+
+		<div class="control-group">
+			<div class="controls">
+				<button class="btn" data-bind="click: save" data-i18n="GLOBAL/SAVE"></button>
+				<i class="icon-check iconcolor-green" data-bind="visible: saved"></i>
+				<span class="iconcolor-red" data-bind="visible: error, text: error"></span>
+			</div>
+		</div>
+
+		<div class="control-group">
+			<div class="controls">
+				<span data-bind="visible: usage, text: usage"></span>
+			</div>
+		</div>
+
+		<div class="control-group">
+			<div class="controls">
+				<span class="help-block" data-i18n="DEEPL/PRIVACY"></span>
+			</div>
+		</div>
+
+	</div>
+</div>

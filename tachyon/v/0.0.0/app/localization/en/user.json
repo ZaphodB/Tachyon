@@ -712,6 +712,8 @@
 		"LABEL_READ": "Read selected messages",
 		"LABEL_UNREAD": "Unread selected messages",
 		"LABEL_IMPORTANT": "Important, flag selected messages",
+		"LABEL_TOGGLE_TAG": "Toggle a tag: Important, Work, Personal, To Do, Later",
+		"LABEL_REMOVE_TAGS": "Remove all five of those tags",
 		"LABEL_CANCEL_SEARCH": "Cancel search",
 		"LABEL_FULLSCREEN_ENTER": "Fullscreen (Preview pane layout)",
 		"LABEL_VIEW_MESSAGE_ENTER": "View message (No preview pane layout)",

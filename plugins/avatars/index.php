@@ -10,8 +10,8 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 		NAME     = 'Avatars',
 		AUTHOR   = 'Tachyon',
 		URL      = 'https://github.com/kimusan/Tachyon',
-		VERSION  = '1.27',
-		RELEASE  = '2026-09-08',
+		VERSION  = '1.28',
+		RELEASE  = '2026-10-24',
 		REQUIRED = '2.33.0',
 		CATEGORY = 'Contacts',
 		LICENSE  = 'MIT',
@@ -30,6 +30,7 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 		// https://github.com/the-djmaze/snappymail/issues/714
 		if ($this->Config()->Get('plugin', 'service', true)
 //		 || !$this->Config()->Get('plugin', 'delay', true)
+		 || $this->Config()->Get('plugin', 'contacts', true)
 		 || $this->Config()->Get('plugin', 'gravatar', false)
 		 || $this->Config()->Get('plugin', 'bimi', false)
 		 || $this->Config()->Get('plugin', 'favicon', false)
@@ -74,8 +75,12 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 			$mFrom = $mFrom->jsonSerialize();
 		}
 		if (\is_array($mFrom)) {
+			// A contact photo is fetched by the same request as the rest, so leaving
+			// contacts out here meant the one lookup that needs no external service
+			// was the one that never ran.
 			if (/*!$this->Config()->Get('plugin', 'delay', true)
-			 && */($this->Config()->Get('plugin', 'gravatar', false)
+			 && */($this->Config()->Get('plugin', 'contacts', true)
+				|| $this->Config()->Get('plugin', 'gravatar', false)
 				|| ($this->Config()->Get('plugin', 'bimi', false) && 'pass' == $mFrom['dkimStatus'])
 				|| ($this->Config()->Get('plugin', 'favicon', false) && 'pass' == $mFrom['dkimStatus'])
 			 )
@@ -120,7 +125,10 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 //	public function ServiceAvatar(...$aParts)
 	public function ServiceAvatar(string $sServiceName, string $sBimi, string $sEncodedEmail)
 	{
-		$maxAge = 86400;
+		// Short, because a contact photo added or changed after a lookup only
+		// reaches the browser once this expires. The lookup behind it is cheap to
+		// repeat: a hit is a file read and a miss is remembered in getAvatar().
+		$maxAge = 300;
 		// Anyone who can reach the login page could call this. With BIMI on it made
 		// the server fetch a URL out of a DNS record for a domain of the caller's
 		// choosing, and wrote whatever came back into the shared avatar cache under
@@ -137,9 +145,22 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 			$sBimiSelector = 'default';
 		}
 //		$sEmail && \MailSo\Base\Http::setETag("{$sBimiSelector}-{$sEncodedEmail}");
-		if ($sEmail && ($aResult = $this->getAvatar($sEmail, !empty($aBimi[0]), $sBimiSelector))) {
-			\header("Cache-Control: max-age={$maxAge}, private");
-			\header('Expires: '.\gmdate('D, j M Y H:i:s', $maxAge + \time()).' UTC');
+		$aResult = $sEmail ? $this->getAvatar($sEmail, !empty($aBimi[0]), $sBimiSelector) : null;
+		// A miss is cached like a hit, because it was the one answer carrying no
+		// cache headers at all, so every list render asked again and every ask
+		// redid the gravatar, favicon and BIMI lookups behind it. Sent before the
+		// ETag is checked, so a 304 carries them too.
+		\header("Cache-Control: max-age={$maxAge}, private");
+		\header('Expires: '.\gmdate('D, j M Y H:i:s', $maxAge + \time()).' UTC');
+		// The ETag has to describe the picture. It used to be the sha1 of the
+		// address, which never changes, so checkETag() answered 304 to every
+		// revalidation and the first answer for a sender was the last one: a
+		// contact edited afterwards could not show up until the browser cache was
+		// cleared by hand.
+		$sEmail && \MailSo\Base\Http::setETag(
+			\sha1($sBimi . $sEncodedEmail . ($aResult ? \md5($aResult[1]) : 'none'))
+		);
+		if ($aResult) {
 			if ('text/uri-list' === $aResult[0]) {
 				// The image lives elsewhere. Point the browser at it instead of
 				// fetching it here, so the server never makes a request to an
@@ -155,12 +176,6 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 			// browser console for every sender without a picture, which on a busy
 			// list is most of them. Measured: 404, 204 and an empty 200 all fire
 			// onerror, and only the 404 is logged.
-			//
-			// Cached like a hit, because a miss was the one answer carrying no
-			// cache headers at all, so every list render asked again and every ask
-			// redid the gravatar, favicon and BIMI lookups behind it.
-			\header("Cache-Control: max-age={$maxAge}, private");
-			\header('Expires: '.\gmdate('D, j M Y H:i:s', $maxAge + \time()).' UTC');
 			\MailSo\Base\Http::StatusHeader(204, 'No Content');
 		}
 		exit;
@@ -248,7 +263,7 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 			return 'data:image/png;base64,' . \base64_encode(\file_get_contents($file));
 		}
 
-		$aResult = static::getCachedImage($sEmail);
+		$aResult = static::getCustomImage($sEmail) ?: static::getCachedImage($sEmail);
 		if ($aResult) {
 			return 'data:'.$aResult[0].';base64,' . \base64_encode($aResult[1]);
 		}
@@ -264,19 +279,24 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 
 		$sAsciiEmail = \mb_strtolower(\Tachyon\Util\IDN::emailToAscii($sEmail));
 		$sEmailId = \sha1($sAsciiEmail);
+		$sDomain = \explode('@', $sAsciiEmail);
+		$sDomain = \array_pop($sDomain);
 
-		\MailSo\Base\Http::setETag($sEmailId);
 		\header('Cache-Control: private');
 //		\header('Expires: '.\gmdate('D, j M Y H:i:s', \time() + 86400).' UTC');
 
-		$aResult = static::getCachedImage($sEmail);
+		// An icon the admin put in APP_PRIVATE_DATA is their decision, so it stays
+		// on top.
+		$aResult = static::getCustomImage($sAsciiEmail);
 		if ($aResult) {
 			return $aResult;
 		}
 
 		// A photo the user put on the contact themselves outranks anything fetched
-		// from a third party, so this sits above BIMI, Gravatar and favicon and
-		// below only the avatars an admin dropped in APP_PRIVATE_DATA.
+		// from a third party, so this sits above BIMI, Gravatar and favicon, and
+		// above what an earlier lookup of those left in the cache. Below that cache
+		// it was never reached again once anything had been stored for the address,
+		// or, by way of the favicon, for the whole domain.
 		if ($this->Config()->Get('plugin', 'contacts', true)) {
 			$aResult = $this->getContactPhoto($sEmail);
 			if ($aResult) {
@@ -284,10 +304,19 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 			}
 		}
 
-		if (!$aResult) {
-			$sDomain = \explode('@', $sEmail);
-			$sDomain = \array_pop($sDomain);
+		$aResult = static::getCachedImage($sAsciiEmail);
+		if ($aResult) {
+			return $aResult;
+		}
 
+		// A sender with no picture is the common case, and finding that out costs a
+		// DNS query and two web requests, so the answer is kept for a day. The DKIM
+		// verdict is part of the name because it decides whether BIMI and favicon
+		// are tried at all.
+		$sMissFile = \APP_PRIVATE_DATA . 'avatars/' . $sEmailId . ($bBimi ? '-none-dkim' : '-none');
+		$bKnownMiss = \is_file($sMissFile) && \filemtime($sMissFile) > \time() - 86400;
+
+		if (!$bKnownMiss) {
 			$aUrls = [];
 
 			if ($this->Config()->Get('plugin', 'bimi', false)) {
@@ -310,10 +339,10 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 					break;
 				}
 			}
-		}
 
-		if ($aResult) {
-			static::cacheImage($sEmail, $aResult);
+			if ($aResult) {
+				static::cacheImage($sAsciiEmail, $aResult);
+			}
 		}
 
 		// Only allow service icon when DKIM is valid. $bBimi is true when DKIM is valid.
@@ -327,9 +356,14 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 				];
 			}
 
-			if (!$aResult && $this->Config()->Get('plugin', 'favicon', false)) {
+			if (!$aResult && !$bKnownMiss && $this->Config()->Get('plugin', 'favicon', false)) {
 				$aResult = static::getFavicon($sDomain);
 			}
+		}
+
+		if (!$aResult && !$bKnownMiss) {
+			\is_dir(\APP_PRIVATE_DATA . 'avatars') || \mkdir(\APP_PRIVATE_DATA . 'avatars', 0700);
+			\touch($sMissFile);
 		}
 
 		return $aResult;
@@ -448,26 +482,51 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 		return null;
 	}
 
-	private static function getCachedImage(string $sEmail) : ?array
+	/**
+	 * An image the admin dropped in APP_PRIVATE_DATA, named after the address or
+	 * its domain, as the top of this file describes.
+	 */
+	private static function getCustomImage(string $sEmail) : ?array
 	{
 		$sEmail = \mb_strtolower(\Tachyon\Util\IDN::emailToAscii($sEmail));
 		$aFiles = \glob(\APP_PRIVATE_DATA . "avatars/{$sEmail}.*");
 		if (!$aFiles && \str_contains($sEmail, '@')) {
+			$sDomain = \explode('@', $sEmail);
+			$sDomain = \array_pop($sDomain);
+			$aFiles = \glob(\APP_PRIVATE_DATA . "avatars/{$sDomain}.*");
+		}
+		return $aFiles ? static::readImage($aFiles[0]) : null;
+	}
+
+	/**
+	 * What an earlier lookup fetched, written by cacheImage() under the sha1 of
+	 * the address or, for a site icon, favicon-<domain>. Those names are nothing
+	 * an admin would choose, which keeps the two apart: a favicon cached for the
+	 * domain used to be served for every address at it, ahead of the contact
+	 * photo and of anything the admin had put there by hand.
+	 */
+	private static function getCachedImage(string $sEmail) : ?array
+	{
+		$sEmail = \mb_strtolower(\Tachyon\Util\IDN::emailToAscii($sEmail));
+		$aFiles = [];
+		if (\str_contains($sEmail, '@')) {
 			$sEmailId = \sha1($sEmail);
 			$aFiles = \glob(\APP_PRIVATE_DATA . "avatars/{$sEmailId}.*");
 			if (!$aFiles) {
 				$sDomain = \explode('@', $sEmail);
 				$sDomain = \array_pop($sDomain);
-				$aFiles = \glob(\APP_PRIVATE_DATA . "avatars/{$sDomain}.*");
+				$aFiles = \glob(\APP_PRIVATE_DATA . 'avatars/favicon-' . $sDomain . '.*');
 			}
 		}
-		if ($aFiles) {
-			return [
-				\Tachyon\Util\File\MimeType::fromFile($aFiles[0]),
-				\file_get_contents($aFiles[0])
-			];
-		}
-		return null;
+		return $aFiles ? static::readImage($aFiles[0]) : null;
+	}
+
+	private static function readImage(string $sFile) : array
+	{
+		return [
+			\Tachyon\Util\File\MimeType::fromFile($sFile),
+			\file_get_contents($sFile)
+		];
 	}
 
 	private static function getFavicon(string $sDomain) : ?array
@@ -506,7 +565,7 @@ class AvatarsPlugin extends \Tachyon\Plugins\AbstractPlugin
 		<link sizes="192x192" rel="apple-touch-icon" type="image/png" href="/..." />
 */
 		if ($aResult) {
-			static::cacheImage($sDomain, $aResult);
+			static::cacheImage('favicon-' . $sDomain, $aResult);
 		}
 		return $aResult;
 	}
