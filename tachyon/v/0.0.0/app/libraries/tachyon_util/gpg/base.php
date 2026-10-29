@@ -487,7 +487,7 @@ abstract class Base
 
 	protected static function findBinary($name) : ?string
 	{
-		$binary = \function_exists('shell_exec') ? \trim((string) `which $name`) : '';
+		$binary = \function_exists('shell_exec') ? \trim((string) \shell_exec('which ' . \escapeshellarg($name))) : '';
 		if ($binary && \Tachyon\Utils::inOpenBasedir($binary) && \is_executable($binary)) {
 			return $binary;
 		}
