@@ -363,6 +363,19 @@ export const
 		});
 */
 
+		/**
+		 * A <body> inside a blockquote belongs to the quoted message's own
+		 * document, not to this one. Left marked, it is the first .mail-body in
+		 * document order whenever the message itself is a fragment, which a reply
+		 * usually is, so bodyAsHTML() quotes the quote and drops what the sender
+		 * wrote. Marking only the first <body> instead, as upstream does, stops
+		 * the sibling merge below from matching anything.
+		 * https://github.com/the-djmaze/snappymail/issues/2089
+		 */
+		tmpl.content.querySelectorAll('blockquote .mail-body').forEach(oElement =>
+			oElement.classList.remove('mail-body')
+		);
+
 		// https://github.com/the-djmaze/snappymail/issues/1641
 		let body = tmpl.content.querySelector('.mail-body');
 		[...tmpl.content.querySelectorAll('.mail-body + .mail-body')]
