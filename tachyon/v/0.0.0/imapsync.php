@@ -183,7 +183,7 @@ function getImapClient(int $host)
 
 	$oImapClient = new \MailSo\Imap\ImapClient;
 //	$oAccount = new \Tachyon\Model\Account;
-	$oImapClient->SetLogger(\Tachyon\API::Logger());
+	$oImapClient->SetLogger(\Tachyon\Api::Logger());
 //	$oPlugins->RunHook('imap.before-connect', array($oAccount, $oImapClient, $ImapSettings));
 	$oImapClient->Connect($ImapSettings);
 //	$oPlugins->RunHook('imap.after-connect', array($oAccount, $oImapClient, $ImapSettings));

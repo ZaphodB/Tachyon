@@ -91,7 +91,7 @@ class Client
 	 */
 	public function applySslConfig() : void
 	{
-		$oConfig = \Tachyon\API::Config();
+		$oConfig = \Tachyon\Api::Config();
 		$this->setVerifyPeer(!!$oConfig->Get('ssl', 'verify_certificate', true));
 		// cafile first, then capath. ca_bundle carries either and each transport
 		// works out which one it was handed.
