@@ -30,12 +30,18 @@ Do not run the script with the example paths unchanged.
 ## Usage
 
 1. Review and configure the script for your installation.
-2. Run it as `root`.
-3. Confirm that you want to enable temporary update permissions.
-4. Perform the Tachyon update from the web panel.
-5. Return to the terminal after the update has completely finished.
-6. Enter `Y` when prompted to restore the configured secure permissions.
-7. Review the displayed ownership and permissions.
+2. Ensure the script is executable:
+
+   ```sh
+   chmod 755 tachyon-web-update.sh
+   ```
+
+3. Run it as `root`.
+4. Confirm that you want to enable temporary update permissions.
+5. Perform the Tachyon update from the web panel.
+6. Return to the terminal after the update has completely finished.
+7. Enter `Y` when prompted to restore the configured secure permissions.
+8. Review the displayed ownership and permissions.
 
 If you do not confirm completion, the script deliberately leaves the temporary permissions in place and displays a warning. Do not leave the installation unattended in this state. Restore the intended secure permissions manually if necessary.
 
