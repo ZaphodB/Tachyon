@@ -598,7 +598,7 @@ class ServiceActions
 	}
 
 	/**
-	 * Login with the \Tachyon\API::CreateUserSsoHash() generated hash
+	 * Login with the \Tachyon\Api::CreateUserSsoHash() generated hash
 	 */
 	public function ServiceSso() : string
 	{
