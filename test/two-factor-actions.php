@@ -155,6 +155,16 @@ $plugin->store->data['user@example.com'] = \MailSo\Base\Utils::UrlSafeBase64Enco
 	serialize(['User' => 'user@example.com', 'Enable' => true, 'Secret' => 'JBSWY3DPEHPK3PXPJBSWY3DP', 'BackupCodes' => '']), md5(APP_SALT)));
 check('refused' === $call('DoGetTwoFactorInfo'), 'a serialized record is not refused');
 check(true !== $login(''), 'a serialized record let the login through without a code');
+check((bool) preg_grep('/unreadable record .*CONFIG key two_factor/', $plugin->log), 'the refusal does not say where the record lives');
+// With 2FA forced and a session already open, the app data still loads.
+$config->Set('plugin', 'force_two_factor_auth', true);
+$appData = ['Auth' => true];
+$plugin->FilterAppData(false, $appData);
+check(true === $appData['RequireTwoFactor'] && false === $appData['SetupTwoFactor'], 'app data with an unreadable record');
+$config->Set('plugin', 'force_two_factor_auth', false);
+// Switched off, but damaged: still refused, since nothing says it was off.
+$plugin->store->data['user@example.com'] = 'damaged';
+check(true !== $login(''), 'a damaged record let the login through');
 class WakeProbe { public static bool $woken = false; public function __wakeup() { self::$woken = true; } }
 $plugin->store->data['user@example.com'] = \MailSo\Base\Utils::UrlSafeBase64Encode(\MailSo\Base\Xxtea::encrypt(
 	serialize(['User' => 'user@example.com', 'Enable' => true, 'Secret' => 'JBSWY3DPEHPK3PXPJBSWY3DP', 'x' => new WakeProbe]), md5(APP_SALT)));

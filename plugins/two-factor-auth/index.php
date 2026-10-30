@@ -61,8 +61,13 @@ class TwoFactorAuthPlugin extends \Tachyon\Plugins\AbstractPlugin
 
 			$aResult['SetupTwoFactor'] = false;
 			if ($aResult['RequireTwoFactor'] && !empty($aResult['Auth'])) {
-				$aData = $this->getTwoFactorInfo($this->getMainAccountFromToken());
-				$aResult['SetupTwoFactor'] = empty($aData['IsSet']) || empty($aData['Enable']);
+				try {
+					$aData = $this->getTwoFactorInfo($this->getMainAccountFromToken());
+					$aResult['SetupTwoFactor'] = empty($aData['IsSet']) || empty($aData['Enable']);
+				} catch (ClientException $oException) {
+					// An unreadable record refuses the next login; thrown from here it
+					// would only turn the already open session's app data into a 500.
+				}
 			}
 		}
 	}
@@ -289,7 +294,8 @@ class TwoFactorAuthPlugin extends \Tachyon\Plugins\AbstractPlugin
 			// A record is there but unreadable (an old serialized one, or
 			// damaged). Treating it as "no second factor" would let the
 			// password alone in, so refuse until an admin clears it.
-			$this->Logger()->Write("TFA: unreadable record for {$oAccount->Email()}, refusing", \LOG_ERR);
+			$this->Logger()->Write("TFA: unreadable record for {$oAccount->Email()}, refusing;"
+				. " delete storage CONFIG key two_factor of this main account to let it in again", \LOG_ERR);
 			throw new ClientException(\Tachyon\Notifications::AuthError);
 		}
 		if (empty($mData['User']) || $oAccount->Email() !== $mData['User']
