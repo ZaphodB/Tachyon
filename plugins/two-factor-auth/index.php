@@ -61,8 +61,13 @@ class TwoFactorAuthPlugin extends \Tachyon\Plugins\AbstractPlugin
 
 			$aResult['SetupTwoFactor'] = false;
 			if ($aResult['RequireTwoFactor'] && !empty($aResult['Auth'])) {
-				$aData = $this->getTwoFactorInfo($this->getMainAccountFromToken());
-				$aResult['SetupTwoFactor'] = empty($aData['IsSet']) || empty($aData['Enable']);
+				try {
+					$aData = $this->getTwoFactorInfo($this->getMainAccountFromToken());
+					$aResult['SetupTwoFactor'] = empty($aData['IsSet']) || empty($aData['Enable']);
+				} catch (ClientException $oException) {
+					// An unreadable record refuses the next login; thrown from here it
+					// would only turn the already open session's app data into a 500.
+				}
 			}
 		}
 	}
@@ -284,17 +289,18 @@ class TwoFactorAuthPlugin extends \Tachyon\Plugins\AbstractPlugin
 			\Tachyon\Providers\Storage\Enumerations\StorageType::CONFIG,
 			'two_factor'
 		);
-		$mData = $sData ? static::DecodeKeyValues($sData) : array();
-		if (null === $mData) {
-			// A record is there but unreadable (an old serialized one, or
-			// damaged). Treating it as "no second factor" would let the
-			// password alone in, so refuse until an admin clears it.
-			$this->Logger()->Write("TFA: unreadable record for {$oAccount->Email()}, refusing", \LOG_ERR);
-			throw new ClientException(\Tachyon\Notifications::AuthError);
-		}
-		if (empty($mData['User']) || $oAccount->Email() !== $mData['User']
-			|| (empty($mData['Secret']) && empty($mData['SecretBox']))) {
+		if (false === $sData) {
 			return null;
+		}
+		$mData = static::DecodeKeyValues($sData);
+		if (null === $mData || empty($mData['User']) || $oAccount->Email() !== $mData['User']
+			|| (empty($mData['Secret']) && empty($mData['SecretBox']))) {
+			// A record is there but unusable (an old serialized one, empty,
+			// damaged, or not this account's). Treating it as "no second factor"
+			// would let the password alone in, so refuse until an admin clears it.
+			$this->Logger()->Write("TFA: unreadable record for {$oAccount->Email()}, refusing;"
+				. " delete storage CONFIG key two_factor of this main account to let it in again", \LOG_ERR);
+			throw new ClientException(\Tachyon\Notifications::AuthError);
 		}
 		$aRecord = TwoFactorRecord::normalise($mData, $this->recordKey());
 		if (TwoFactorRecord::isLegacy($mData)) {

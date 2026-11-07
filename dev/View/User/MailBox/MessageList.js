@@ -49,6 +49,10 @@ import { setLayoutResizer } from 'Common/UtilsUser';
 const
 	canBeMovedHelper = () => MessagelistUserStore.hasCheckedOrSelected(),
 
+	// Forwarding and downloading work from the loaded messages themselves, so
+	// they cannot reach the rest of a list selected beyond the page (#182)
+	pageOnlyHelper = () => canBeMovedHelper() && !MessagelistUserStore.allMatching(),
+
 	/**
 	 * @param {string} sFolderFullName
 	 * @param {number} iSetAction
@@ -67,14 +71,19 @@ const
 		byFolder.forEach(fn);
 	},
 
-	listActionPerFolder = (iSetAction, messages) =>
-		perFolder(messages, (list, folder) => listAction(folder, iSetAction, list)),
+	listActionPerFolder = (iSetAction, messages) => {
+		const all = MessagelistUserStore.allMatching();
+		all
+			? listAction(all.folder, iSetAction, MessagelistUserStore.listChecked(), all.uids)
+			: perFolder(messages, (list, folder) => listAction(folder, iSetAction, list));
+	},
 
 	// The keywords Thunderbird's 1 to 5 keys set, named and coloured to match
 	labelKeywords = [1, 2, 3, 4, 5].map(i => '$label' + i),
 
-	setKeyword = (messages, keyword, bSet) =>
-		perFolder(messages, (list, folder) =>
+	setKeyword = (messages, keyword, bSet) => {
+		const all = MessagelistUserStore.allMatching();
+		perFolder(all ? MessagelistUserStore.listChecked() : messages, (list, folder) =>
 			Remote.request('MessageSetKeyword', iError => {
 				iError || list.forEach(message =>
 					bSet
@@ -83,11 +92,12 @@ const
 				);
 			}, {
 				folder: folder,
-				uids: list.map(message => message.uid).join(','),
+				uids: (all ? [...all.uids] : list.map(message => message.uid)).join(','),
 				keyword: keyword,
 				setAction: bSet ? 1 : 0
 			})
-		),
+		);
+	},
 
 	moveMessagesToFolderType = (toFolderType, bDelete) => {
 		MessagelistUserStore.listCheckedOrSelectedByFolder().forEach((uids, folder) =>
@@ -198,6 +208,28 @@ export class MailMessageList extends AbstractViewRight {
 				write: value => sLastSearchValue = value
 			},
 
+			// "All 50 on this page are selected", with the offer to take the rest
+			// of the list. Not for a list across folders, or one thread (#182).
+			allMatchingOffer: () => {
+				const all = MessagelistUserStore.allMatching(),
+					loaded = MessagelistUserStore().length;
+				return all
+					? i18n(all.search ? 'MESSAGE_LIST/ALL_MATCHING_SEARCH_SELECTED' : 'MESSAGE_LIST/ALL_MATCHING_SELECTED',
+						{ COUNT: all.uids.size.toLocaleString() })
+					: (loaded && loaded === MessagelistUserStore.listChecked().length
+						&& MessagelistUserStore.count() > loaded
+						&& !MessagelistUserStore.listSearchScope()
+						&& !MessagelistUserStore.threadUid())
+					? i18n('MESSAGE_LIST/PAGE_SELECTED', { COUNT: loaded.toLocaleString() })
+					: '';
+			},
+
+			allMatchingAction: () => i18n(MessagelistUserStore.allMatching()
+				? 'MESSAGE_LIST/CLEAR_SELECTION'
+				: MessagelistUserStore.listSearch()
+					? 'MESSAGE_LIST/SELECT_ALL_MATCHING_SEARCH'
+					: 'MESSAGE_LIST/SELECT_ALL_MATCHING'),
+
 			isIncompleteChecked: () => {
 				const c = MessagelistUserStore.listChecked().length;
 				return c && MessagelistUserStore().length > c;
@@ -215,8 +247,6 @@ export class MailMessageList extends AbstractViewRight {
 				}
 				return SettingsUserStore.listGrouped() && (sort.includes('DATE') || sort.includes('FROM'));
 			},
-
-			timeFormat: () => (FolderUserStore.sortMode() || '').includes('FROM') ? 'AUTO' : 'LT',
 
 			groupedList: () => {
 				let list = [], current, sort = FolderUserStore.sortMode() || 'DATE';
@@ -272,6 +302,9 @@ export class MailMessageList extends AbstractViewRight {
 								id: ymd,
 								label: date,
 								search: 'on=' + dt.getFullYear() + '-' + pad2(1 + dt.getMonth()) + '-' + pad2(dt.getDate()),
+								// The label carries the date, so a row needs only the time.
+								// Any other group, a plugin's included, gets the full one (#150).
+								timeFormat: 'LT',
 								messages: []
 							};
 							list.push(current);
@@ -430,9 +463,9 @@ export class MailMessageList extends AbstractViewRight {
 		).throttle(50));
 
 		decorateKoCommands(this, {
-			downloadAttachCommand: canBeMovedHelper,
-			downloadZipCommand: canBeMovedHelper,
-			forwardCommand: canBeMovedHelper,
+			downloadAttachCommand: pageOnlyHelper,
+			downloadZipCommand: pageOnlyHelper,
+			forwardCommand: pageOnlyHelper,
 			deleteWithoutMoveCommand: canBeMovedHelper,
 			deleteCommand: () => MessagelistUserStore.hasCheckedOrSelectedAndUndeleted(),
 			undeleteCommand: () => MessagelistUserStore.hasCheckedOrSelectedAndDeleted(),
@@ -463,6 +496,12 @@ export class MailMessageList extends AbstractViewRight {
 	clear() {
 		SettingsCapa('DangerousActions')
 		&& showScreenPopup(FolderClearPopupView, [FolderUserStore.currentFolder()]);
+	}
+
+	toggleAllMatching() {
+		MessagelistUserStore.allMatching()
+			? MessagelistUserStore.forEach(message => message.checked(false))
+			: MessagelistUserStore.selectAllMatching();
 	}
 
 	reload() {

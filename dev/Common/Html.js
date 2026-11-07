@@ -350,6 +350,16 @@ export const
 		// https://github.com/the-djmaze/snappymail/issues/1125
 		tmpl.content.querySelectorAll(keepTagContent).forEach(oElement => replaceWithChildren(oElement));
 
+		// An element the parser does not know, like <root> or <my-tag>, is inert,
+		// so drop only the tag: removing it took everything inside it along (#191).
+		// <xml> is Outlook's settings block, whose content is noise.
+		tmpl.content.querySelectorAll('*').forEach(oElement =>
+			oElement instanceof HTMLElement
+			&& (oElement instanceof HTMLUnknownElement || oElement.tagName.includes('-'))
+			&& 'XML' !== oElement.tagName
+			&& replaceWithChildren(oElement)
+		);
+
 		tmpl.content.querySelectorAll(
 			':not('+allowedTags+'),a:empty,span:empty'
 			+ (0 < bqLevel ? ',' + (new Array(1 + bqLevel).fill('blockquote').join(' ')) : '')
@@ -362,6 +372,19 @@ export const
 			}
 		});
 */
+
+		/**
+		 * A <body> inside a blockquote belongs to the quoted message's own
+		 * document, not to this one. Left marked, it is the first .mail-body in
+		 * document order whenever the message itself is a fragment, which a reply
+		 * usually is, so bodyAsHTML() quotes the quote and drops what the sender
+		 * wrote. Marking only the first <body> instead, as upstream does, stops
+		 * the sibling merge below from matching anything.
+		 * https://github.com/the-djmaze/snappymail/issues/2089
+		 */
+		tmpl.content.querySelectorAll('blockquote .mail-body').forEach(oElement =>
+			oElement.classList.remove('mail-body')
+		);
 
 		// https://github.com/the-djmaze/snappymail/issues/1641
 		let body = tmpl.content.querySelector('.mail-body');
